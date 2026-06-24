@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity, Text, Image, ActivityIndicator, Alert, Platform } from 'react-native';
+import CustomTextInput from './CustomTextInput';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera as CameraIcon, Upload, X, User } from 'lucide-react-native';
@@ -118,7 +119,7 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.titleContainer}>
-              <CameraIcon color="#F97316" size={20} />
+              <CameraIcon color="#F97316" size={18} />
               <Text style={styles.headerTitle}>Check-In with Face Recognition</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -186,12 +187,12 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
               onPress={handleUploadPhoto}
               disabled={isFaceRegistered === false || statusLoading}
             >
-              <Upload color="#F97316" size={20} />
+              <Upload color="#F97316" size={18} />
               <Text style={styles.footerBtnText}>Upload Photo</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.footerBtn} onPress={onClose}>
-              <X color="#F97316" size={20} />
+              <X color="#F97316" size={18} />
               <Text style={styles.footerBtnText}>Cancel</Text>
             </TouchableOpacity>
           </View>

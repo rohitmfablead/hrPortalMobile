@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, Text, TextInput, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { View, StyleSheet, Modal, TouchableOpacity, Text,  Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import CustomTextInput from './CustomTextInput';
 import { X, Calendar as CalendarIcon, DollarSign } from 'lucide-react-native';
 
 export default function AddPayslipModal({ visible, onClose, onSave }: any) {
@@ -24,21 +25,19 @@ export default function AddPayslipModal({ visible, onClose, onSave }: any) {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Period</Text>
-              <View style={styles.inputContainer}>
-                <CalendarIcon color="#F97316" size={20} style={styles.inputIcon} />
-                <TextInput style={styles.input} value={period} onChangeText={setPeriod} placeholderTextColor="#ffffff" />
-              </View>
-            </View>
+            <CustomTextInput
+              label="Period"
+              value={period} onChangeText={setPeriod}
+              left={<CustomTextInput.Icon icon={() => <CalendarIcon color="#F97316" size={18} />} />}
+              
+            />
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Amount</Text>
-              <View style={styles.inputContainer}>
-                <DollarSign color="#F97316" size={20} style={styles.inputIcon} />
-                <TextInput style={styles.input} value={amount} onChangeText={setAmount} placeholderTextColor="#ffffff" />
-              </View>
-            </View>
+            <CustomTextInput
+              label="Amount"
+              value={amount} onChangeText={setAmount}
+              left={<CustomTextInput.Icon icon={() => <DollarSign color="#F97316" size={18} />} />}
+              
+            />
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>Status</Text>

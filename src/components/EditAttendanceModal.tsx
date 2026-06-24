@@ -1,38 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity, Text, Platform } from 'react-native';
 import CustomTextInput from './CustomTextInput';
-import CustomDropdown from './CustomDropdown';
-import CustomDatePicker from './CustomDatePicker';
-import api from '../services/api';
-import { X, Calendar as CalendarIcon, Clock, User } from 'lucide-react-native';
+import { X, Calendar as CalendarIcon, Clock } from 'lucide-react-native';
 
-type AddAttendanceModalProps = {
+type EditAttendanceModalProps = {
   visible: boolean;
   onClose: () => void;
-  onSave: (date: string, checkIn: string, checkOut: string, status: string, employeeId?: string) => void;
+  onSave: (id: string, date: string, checkIn: string, checkOut: string, status: string) => void;
+  record: any;
 };
 
-export default function AddAttendanceModal({ visible, onClose, onSave }: AddAttendanceModalProps) {
-  // In a real app, we'd use a proper date/time picker library. 
-  // For simplicity and web compatibility, we'll use text inputs with standard formats for now.
-  const [date, setDate] = useState('Oct 20, 2026');
-  const [checkIn, setCheckIn] = useState('09:00 AM');
-  const [checkOut, setCheckOut] = useState('06:00 PM');
+export default function EditAttendanceModal({ visible, onClose, onSave, record }: EditAttendanceModalProps) {
+  const [date, setDate] = useState('');
+  const [checkIn, setCheckIn] = useState('');
+  const [checkOut, setCheckOut] = useState('');
   const [status, setStatus] = useState('Present');
-  const [employeeId, setEmployeeId] = useState('');
-  const [employees, setEmployees] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (visible) {
-      api.get('/employees').then(res => {
-        const emps = Array.isArray(res.data) ? res.data : (res.data.data?.employees || res.data.data || []);
-        setEmployees(emps);
-      }).catch(err => console.log('Error fetching employees:', err));
+  React.useEffect(() => {
+    if (record) {
+      setDate(record.date ? record.date.split('T')[0] : '');
+      setCheckIn(record.checkIn || '');
+      setCheckOut(record.checkOut || '');
+      setStatus(record.status ? record.status.charAt(0).toUpperCase() + record.status.slice(1) : 'Present');
     }
-  }, [visible]);
+  }, [record]);
 
   const handleSave = () => {
-    onSave(date, checkIn, checkOut, status, employeeId);
+    onSave(record?._id || record?.id, date, checkIn, checkOut, status);
     onClose();
   };
 
@@ -42,25 +36,18 @@ export default function AddAttendanceModal({ visible, onClose, onSave }: AddAtte
         <View style={styles.modalContainer}>
           
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Add Attendance</Text>
+            <Text style={styles.headerTitle}>Edit Attendance</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <X color="#F97316" size={24} />
             </TouchableOpacity>
           </View>
 
-          <CustomDropdown
-            label="Employee"
-            value={employeeId}
-            onSelect={setEmployeeId}
-            options={employees.map(emp => ({ label: emp.firstName ? `${emp.firstName} ${emp.lastName}` : emp.name || 'Unknown', value: emp._id || emp.id }))}
-            placeholder="Select Employee"
-            icon={() => <User color="#F97316" size={18} />}
-          />
-
-          <CustomDatePicker
-              label="Date"
+          <CustomTextInput
+              label="Date (e.g. Oct 20, 2026)"
               value={date} 
-              onDateChange={setDate}
+              onChangeText={setDate}
+              placeholder="Oct 20, 2026"
+              left={<CustomTextInput.Icon icon={() => <CalendarIcon color="#F97316" size={18} />} />}
           />
 
           <View style={styles.formGroupRow}>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, Text, TextInput, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { View, StyleSheet, Modal, TouchableOpacity, Text,  Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import CustomTextInput from './CustomTextInput';
 import { X, MessageSquare, AlignLeft } from 'lucide-react-native';
 
 export default function AddFeedbackModal({ visible, onClose, onSave }: any) {
@@ -24,32 +25,19 @@ export default function AddFeedbackModal({ visible, onClose, onSave }: any) {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Type</Text>
-              <View style={styles.typeButtonsContainer}>
-                {['Suggestion', 'Complaint', 'Praise'].map(t => (
-                  <TouchableOpacity key={t} style={[styles.typeBtn, type === t && styles.typeBtnActive]} onPress={() => setType(t)}>
-                    <Text style={[styles.typeBtnText, type === t && styles.typeBtnTextActive]}>{t}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+            <CustomTextInput
+              label="Type"
+              value={subject} onChangeText={setSubject} placeholder="e.g. New Coffee Machine"
+              left={<CustomTextInput.Icon icon={() => <MessageSquare color="#F97316" size={18} />} />}
+              
+            />
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Subject</Text>
-              <View style={styles.inputContainer}>
-                <MessageSquare color="#F97316" size={20} style={styles.inputIcon} />
-                <TextInput style={styles.input} value={subject} onChangeText={setSubject} placeholder="e.g. New Coffee Machine" placeholderTextColor="#ffffff" />
-              </View>
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Details</Text>
-              <View style={[styles.inputContainer, { height: 100, alignItems: 'flex-start', paddingTop: 12 }]}>
-                <AlignLeft color="#F97316" size={20} style={styles.inputIcon} />
-                <TextInput style={[styles.input, { height: 76 }]} value={details} onChangeText={setDetails} placeholder="Share your thoughts..." placeholderTextColor="#ffffff" multiline />
-              </View>
-            </View>
+            <CustomTextInput
+              label="Details"
+               value={details} onChangeText={setDetails} placeholder="Share your thoughts..." multiline
+              left={<CustomTextInput.Icon icon={() => <AlignLeft color="#F97316" size={18} />} />}
+              
+            />
 
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
               <Text style={styles.saveBtnText}>Submit Feedback</Text>

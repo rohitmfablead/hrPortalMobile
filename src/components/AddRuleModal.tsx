@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, Text, TextInput, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { View, StyleSheet, Modal, TouchableOpacity, Text, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import CustomTextInput from './CustomTextInput';
 import { X, Type, AlignLeft } from 'lucide-react-native';
 
 export default function AddRuleModal({ visible, onClose, onSave }: any) {
@@ -23,21 +24,23 @@ export default function AddRuleModal({ visible, onClose, onSave }: any) {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Policy Title</Text>
-              <View style={styles.inputContainer}>
-                <Type color="#F97316" size={20} style={styles.inputIcon} />
-                <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="e.g. Remote Work Policy" placeholderTextColor="#ffffff" />
-              </View>
-            </View>
+            <CustomTextInput
+              label="Policy Title"
+              value={title}
+              onChangeText={setTitle}
+              placeholder="e.g. Remote Work Policy"
+              left={<CustomTextInput.Icon icon={() => <Type color="#F97316" size={18} />} />}
+            />
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Description</Text>
-              <View style={[styles.inputContainer, { height: 100, alignItems: 'flex-start', paddingTop: 12 }]}>
-                <AlignLeft color="#F97316" size={20} style={styles.inputIcon} />
-                <TextInput style={[styles.input, { height: 76 }]} value={description} onChangeText={setDescription} placeholder="Enter policy details..." placeholderTextColor="#ffffff" multiline />
-              </View>
-            </View>
+            <CustomTextInput
+              label="Description"
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Enter policy details..."
+              multiline
+              numberOfLines={3}
+              left={<CustomTextInput.Icon icon={() => <AlignLeft color="#F97316" size={18} />} />}
+            />
 
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
               <Text style={styles.saveBtnText}>Save Policy</Text>

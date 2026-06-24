@@ -33,9 +33,9 @@ const initialState: AttendanceState = {
 
 export const fetchMyAttendance = createAsyncThunk(
   'attendance/fetchMyAttendance',
-  async (_, { rejectWithValue }) => {
+  async (params: { fromDate?: string; toDate?: string; month?: string; year?: string } | void, { rejectWithValue }) => {
     try {
-      const response = await api.get('/attendance/my');
+      const response = await api.get('/attendance/my', { params: params || {} });
       return response.data.data.attendance;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.error?.message || 'Failed to fetch attendance');
@@ -45,9 +45,9 @@ export const fetchMyAttendance = createAsyncThunk(
 
 export const fetchAllAttendance = createAsyncThunk(
   'attendance/fetchAllAttendance',
-  async (_, { rejectWithValue }) => {
+  async (params: { fromDate?: string; toDate?: string } | void, { rejectWithValue }) => {
     try {
-      const response = await api.get('/attendance');
+      const response = await api.get('/attendance', { params: params || {} });
       return response.data.data.attendance;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.error?.message || 'Failed to fetch attendance');

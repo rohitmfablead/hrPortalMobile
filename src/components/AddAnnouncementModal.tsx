@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, Text, TextInput, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { View, StyleSheet, Modal, TouchableOpacity, Text,  Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import CustomTextInput from './CustomTextInput';
 import { X, Type, AlignLeft, Calendar as CalendarIcon } from 'lucide-react-native';
 
 export default function AddAnnouncementModal({ visible, onClose, onSave }: any) {
@@ -24,29 +25,26 @@ export default function AddAnnouncementModal({ visible, onClose, onSave }: any) 
               </TouchableOpacity>
             </View>
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Title</Text>
-              <View style={styles.inputContainer}>
-                <Type color="#F97316" size={20} style={styles.inputIcon} />
-                <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="e.g. Townhall Meeting" placeholderTextColor="#ffffff" />
-              </View>
-            </View>
+            <CustomTextInput
+              label="Title"
+              value={title} onChangeText={setTitle} placeholder="e.g. Townhall Meeting"
+              left={<CustomTextInput.Icon icon={() => <Type color="#F97316" size={18} />} />}
+              
+            />
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Date</Text>
-              <View style={styles.inputContainer}>
-                <CalendarIcon color="#F97316" size={20} style={styles.inputIcon} />
-                <TextInput style={styles.input} value={date} onChangeText={setDate} placeholderTextColor="#ffffff" />
-              </View>
-            </View>
+            <CustomTextInput
+              label="Date"
+              value={date} onChangeText={setDate}
+              left={<CustomTextInput.Icon icon={() => <CalendarIcon color="#F97316" size={18} />} />}
+              
+            />
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Message</Text>
-              <View style={[styles.inputContainer, { height: 100, alignItems: 'flex-start', paddingTop: 12 }]}>
-                <AlignLeft color="#F97316" size={20} style={styles.inputIcon} />
-                <TextInput style={[styles.input, { height: 76 }]} value={message} onChangeText={setMessage} placeholder="Enter message..." placeholderTextColor="#ffffff" multiline />
-              </View>
-            </View>
+            <CustomTextInput
+              label="Message"
+               value={message} onChangeText={setMessage} placeholder="Enter message..." multiline
+              left={<CustomTextInput.Icon icon={() => <AlignLeft color="#F97316" size={18} />} />}
+              
+            />
 
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
               <Text style={styles.saveBtnText}>Post Announcement</Text>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity, Text, Platform } from 'react-native';
+import CustomTextInput from './CustomTextInput';
 import { LogOut, X } from 'lucide-react-native';
 
 type Props = {

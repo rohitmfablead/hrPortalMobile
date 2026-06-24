@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, Text, TextInput, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { View, StyleSheet, Modal, TouchableOpacity, Text,  Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import CustomTextInput from './CustomTextInput';
 import { X, User, Calendar as CalendarIcon } from 'lucide-react-native';
 
 export default function AddPerformanceModal({ visible, onClose, onSave }: any) {
@@ -24,21 +25,19 @@ export default function AddPerformanceModal({ visible, onClose, onSave }: any) {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Employee Name</Text>
-              <View style={styles.inputContainer}>
-                <User color="#F97316" size={20} style={styles.inputIcon} />
-                <TextInput style={styles.input} value={employee} onChangeText={setEmployee} placeholder="e.g. John Doe" placeholderTextColor="#ffffff" />
-              </View>
-            </View>
+            <CustomTextInput
+              label="Employee Name"
+              value={employee} onChangeText={setEmployee} placeholder="e.g. John Doe"
+              left={<CustomTextInput.Icon icon={() => <User color="#F97316" size={18} />} />}
+              
+            />
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Period</Text>
-              <View style={styles.inputContainer}>
-                <CalendarIcon color="#F97316" size={20} style={styles.inputIcon} />
-                <TextInput style={styles.input} value={period} onChangeText={setPeriod} placeholderTextColor="#ffffff" />
-              </View>
-            </View>
+            <CustomTextInput
+              label="Period"
+              value={period} onChangeText={setPeriod}
+              left={<CustomTextInput.Icon icon={() => <CalendarIcon color="#F97316" size={18} />} />}
+              
+            />
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>Rating</Text>

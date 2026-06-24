@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, SafeAreaView } from 'react-native';
-import { Menu, Bell, ArrowLeft } from 'lucide-react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, SafeAreaView, DeviceEventEmitter } from 'react-native';
+import { Menu, Bell, ArrowLeft, Plus } from 'lucide-react-native';
 import { DrawerHeaderProps } from '@react-navigation/drawer';
+import { useSelector } from 'react-redux';
+import { RootState } from '../redux/store';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 
 function getHeaderTitle(route: any, optionsTitle: string | undefined) {
@@ -20,36 +22,62 @@ function getHeaderTitle(route: any, optionsTitle: string | undefined) {
   return optionsTitle !== undefined ? optionsTitle : route.name;
 }
 
-export default function CustomHeader({ navigation, options, route }: DrawerHeaderProps) {
+export default function CustomHeader({ navigation, options, route, showBackButton }: any) {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isAdminOrHR = user?.role === 'Admin' || user?.role === 'HR';
+
   // Try to use the title from options, fallback to route name or nested tab route
   const title = getHeaderTitle(route, options.title);
   const isBottomNavScreen = route.name === 'Main';
 
+  const adminOnlyAddScreens = [
+    'Employee', 'Holidays', 'Leave', 'Announcements', 'Payslip', 
+    'Attendance', 'Performances', 'Departments', 'Rules', 
+    'Designations', 'LeaveTypes'
+  ];
+  
+  const allRolesAddScreens = [
+    'Leaves', // MyLeaves
+    'Feedback'
+  ];
+
+  const showAddBtn = allRolesAddScreens.includes(title) || (isAdminOrHR && adminOnlyAddScreens.includes(title));
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.headerContainer}>
-        {isBottomNavScreen ? (
-          <TouchableOpacity 
-            onPress={() => navigation.toggleDrawer()} 
-            style={styles.iconButton}
-          >
-            <Menu color="#FFFFFF" size={24} />
-          </TouchableOpacity>
-        ) : (
+        {showBackButton ? (
           <TouchableOpacity 
             onPress={() => navigation.goBack()} 
             style={styles.iconButton}
           >
             <ArrowLeft color="#FFFFFF" size={24} />
           </TouchableOpacity>
+        ) : (
+          <TouchableOpacity 
+            onPress={() => (navigation as any).toggleDrawer?.()} 
+            style={styles.iconButton}
+          >
+            <Menu color="#FFFFFF" size={24} />
+          </TouchableOpacity>
         )}
         
         <Text style={styles.title}>{title}</Text>
         
-        <TouchableOpacity style={styles.iconButton}>
-          <Bell color="#FFFFFF" size={22} />
-          <View style={styles.badge} />
-        </TouchableOpacity>
+        <View style={styles.rightContainer}>
+          {showAddBtn && (
+            <TouchableOpacity 
+              style={styles.iconButton} 
+              onPress={() => DeviceEventEmitter.emit('onAddAction')}
+            >
+              <Plus color="#FFFFFF" size={24} />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Notifications' as never)}>
+            <Bell color="#FFFFFF" size={22} />
+            <View style={styles.badge} />
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -82,5 +110,9 @@ const styles = StyleSheet.create({
   badge: {backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: '#E2E8F0',
+  },
+  rightContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   }
 });

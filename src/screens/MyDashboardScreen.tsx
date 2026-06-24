@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../redux/store';
@@ -10,6 +10,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { mockAttendance, mockLeaves, mockBirthdays, mockTasks } from '../mockData/mockData';
 import FaceCheckInModal from '../components/FaceCheckInModal';
 import api from '../services/api';
+import Toast from 'react-native-toast-message';
 
 export default function MyDashboardScreen() {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -21,6 +22,13 @@ export default function MyDashboardScreen() {
   const [statusLoading, setStatusLoading] = React.useState(true);
   const [isFaceModalVisible, setIsFaceModalVisible] = React.useState(false);
   const [todayShift, setTodayShift] = React.useState<any>(null);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning,';
+    if (hour < 17) return 'Good Afternoon,';
+    return 'Good Evening,';
+  };
 
   const isEmployee = user?.role === 'Employee' || user?.role === 'employee';
 
@@ -52,14 +60,29 @@ export default function MyDashboardScreen() {
   const handleAttendance = () => {
     const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     if (isCheckedIn) {
-      // Check Out
-      dispatch(markManualAttendance({ checkIn: '', checkOut: time, employeeId: user?.id }))
+      // Check Out - send the original checkIn time
+      const previousCheckIn = todayShift?.checkIn || '';
+      dispatch(markManualAttendance({ checkIn: previousCheckIn, checkOut: time, employeeId: user?.id }))
         .unwrap()
         .then(() => {
-          Alert.alert('Success', 'Checked out successfully at ' + time);
+          Toast.show({
+            type: 'success',
+            text1: 'Success',
+            text2: `Checked out successfully at ${time}`
+          });
           setIsCheckedIn(false);
+          
+          // Send notification only for employee role (admin/HR should not receive)
+          if (user?.role === 'Employee' || user?.role === 'employee') {
+            api.post('/notifications', {
+              title: 'Employee Check-Out',
+              message: `${user?.name || 'An employee'} checked out at ${time}`,
+              type: 'attendance',
+              userId: user?.id,
+            }).catch(err => console.log('Notification error', err));
+          }
         })
-        .catch((err) => Alert.alert('Error', err));
+        .catch((err) => Toast.show({ type: 'error', text1: 'Error', text2: err?.message || err }));
     } else {
       // Open Face Recognition Modal
       setIsFaceModalVisible(true);
@@ -72,27 +95,44 @@ export default function MyDashboardScreen() {
     dispatch(markManualAttendance({ checkIn: time, employeeId: user?.id }))
       .unwrap()
       .then(() => {
-        Alert.alert('Success', 'Face matched! Checked in successfully at ' + time);
+        Toast.show({
+          type: 'success',
+          text1: 'Success',
+          text2: `Face matched! Checked in successfully at ${time}`
+        });
         setIsCheckedIn(true);
+        
+        // Send notification only for employee role (admin/HR should not receive)
+        if (user?.role === 'Employee' || user?.role === 'employee') {
+          api.post('/notifications', {
+            title: 'Employee Check-In',
+            message: `${user?.name || 'An employee'} checked in at ${time}`,
+            type: 'attendance',
+            userId: user?.id,
+          }).catch(err => console.log('Notification error', err));
+        }
       })
-      .catch((err) => Alert.alert('Error', err));
+      .catch((err) => Toast.show({ type: 'error', text1: 'Error', text2: err?.message || err }));
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      
+
       {/* Welcome Section */}
       <View style={styles.welcomeSection}>
-        <View>
-          <Text style={styles.greeting}>Good Morning,</Text>
+        {user?.avatar ? (
+          <Image source={{ uri: user.avatar }} style={styles.headerAvatar} />
+        ) : (
+          <View style={styles.headerAvatarPlaceholder}>
+            <Text style={styles.headerAvatarText}>
+              {user?.name ? user.name.substring(0, 2).toUpperCase() : 'HR'}
+            </Text>
+          </View>
+        )}
+        <View style={{ marginLeft: 16, flex: 1 }}>
+          <Text style={styles.greeting}>{getGreeting()}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={styles.userName}>{user?.name || 'Employee'} 👋</Text>
-            {stats?.todayHours ? (
-              <View style={styles.hoursBadge}>
-                <Clock color="#a855f7" size={14} style={{ marginRight: 4 }} />
-                <Text style={styles.hoursText}>{stats.todayHours}</Text>
-              </View>
-            ) : null}
           </View>
         </View>
       </View>
@@ -101,12 +141,12 @@ export default function MyDashboardScreen() {
       {isEmployee && (
         <View style={{ marginBottom: 24 }}>
           <View style={[styles.actionsContainer, { marginBottom: 0 }]}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.actionBtn, 
-                isCheckedOut ? styles.checkOutBtn : (isCheckedIn ? styles.checkOutBtn : styles.checkInBtn), 
+                styles.actionBtn,
+                isCheckedOut ? styles.checkOutBtn : (isCheckedIn ? styles.checkOutBtn : styles.checkInBtn),
                 { width: '100%', opacity: (isCheckedOut || statusLoading) ? 0.6 : 1 }
-              ]} 
+              ]}
               onPress={isCheckedOut ? undefined : handleAttendance}
               disabled={isCheckedOut || statusLoading}
             >
@@ -125,11 +165,11 @@ export default function MyDashboardScreen() {
               </View>
               <View style={styles.shiftInfoItem}>
                 <Text style={styles.shiftInfoLabel}>Completed</Text>
-                <Text style={[styles.shiftInfoValue, {color: '#0F172A'}]}>{todayShift.hoursCompleted}</Text>
+                <Text style={[styles.shiftInfoValue, { color: '#0F172A' }]}>{todayShift.hoursCompleted}</Text>
               </View>
               <View style={styles.shiftInfoItem}>
                 <Text style={styles.shiftInfoLabel}>Remaining</Text>
-                <Text style={[styles.shiftInfoValue, {color: '#F97316'}]}>{todayShift.hoursRemaining}</Text>
+                <Text style={[styles.shiftInfoValue, { color: '#F97316' }]}>{todayShift.hoursRemaining}</Text>
               </View>
             </View>
           )}
@@ -148,9 +188,9 @@ export default function MyDashboardScreen() {
         ].map((link) => {
           const Icon = link.icon;
           return (
-            <TouchableOpacity 
-              key={link.name} 
-              style={styles.quickLinkBox} 
+            <TouchableOpacity
+              key={link.name}
+              style={styles.quickLinkBox}
               onPress={() => navigation.navigate(link.route as never)}
             >
               <View style={[styles.quickLinkIconContainer, { backgroundColor: `${link.color}20` }]}>
@@ -227,23 +267,23 @@ export default function MyDashboardScreen() {
         </TouchableOpacity>
       </View>
       {stats?.weeklyAttendance && stats.weeklyAttendance.length > 0 ? (
-        stats.weeklyAttendance.slice(0, 5).map((item: any, index: number) => (
+        [...stats.weeklyAttendance].reverse().slice(0, 7).map((item: any, index: number) => (
           <View key={index} style={styles.listItem}>
             <View>
               <Text style={styles.listTitle}>{item.day}, {new Date(item.date).toLocaleDateString()}</Text>
               {item.isWeekend && <Text style={styles.listSubtitle}>Weekend</Text>}
             </View>
             <View style={[
-              styles.statusBadge, 
-              item.status === 'present' ? styles.badgeGreen : 
-              (item.status === 'absent' || item.status === 'missing' ? styles.badgeRed : styles.badgeOrange)
+              styles.statusBadge,
+              item.status === 'present' ? styles.badgeGreen :
+                (item.status === 'absent' || item.status === 'missing' ? styles.badgeRed : styles.badgeOrange)
             ]}>
               <Text style={styles.statusText}>{item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : ''}</Text>
             </View>
           </View>
         ))
       ) : (
-        <Text style={{color: '#0F172A'}}>No attendance data</Text>
+        <Text style={{ color: '#0F172A' }}>No attendance data</Text>
       )}
 
       {/* My Leaves */}
@@ -254,19 +294,25 @@ export default function MyDashboardScreen() {
         </TouchableOpacity>
       </View>
       {stats?.recentLeaves && stats.recentLeaves.length > 0 ? (
-        stats.recentLeaves.map((item: any, index: number) => (
-          <View key={index} style={styles.listItem}>
-            <View>
-              <Text style={styles.listTitle}>{item.type || 'Leave'}</Text>
-              <Text style={styles.listSubtitle}>{item.startDate} to {item.endDate}</Text>
+        stats.recentLeaves.map((item: any, index: number) => {
+          const isApproved = item.status === 'Approved';
+          const isPending = item.status === 'Pending';
+          return (
+            <View key={index} style={[styles.leaveCard, isApproved ? styles.leaveApproved : (isPending ? styles.leavePending : styles.leaveRejected)]}>
+              <View style={styles.leaveContent}>
+                <Text style={styles.leaveType}>{item.type || 'Leave Request'}</Text>
+                <Text style={styles.leaveDates}>{item.startDate}  •  {item.endDate}</Text>
+              </View>
+              <View style={[styles.statusBadge, isApproved ? styles.badgeGreen : (isPending ? styles.badgeOrange : styles.badgeRed)]}>
+                <Text style={[styles.statusText, isApproved ? styles.textGreen : (isPending ? styles.textOrange : styles.textRed)]}>{item.status}</Text>
+              </View>
             </View>
-            <View style={[styles.statusBadge, item.status === 'Approved' ? styles.badgeGreen : styles.badgeOrange]}>
-              <Text style={styles.statusText}>{item.status}</Text>
-            </View>
-          </View>
-        ))
+          );
+        })
       ) : (
-        <Text style={{color: '#0F172A'}}>No recent leaves</Text>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>No recent leaves</Text>
+        </View>
       )}
 
       {/* Upcoming Holidays */}
@@ -276,16 +322,20 @@ export default function MyDashboardScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
         {stats?.upcomingHolidays && stats.upcomingHolidays.length > 0 ? (
           stats.upcomingHolidays.map((item: any, index: number) => (
-            <View key={index} style={styles.birthdayCard}>
-              <View style={[styles.birthdayIcon, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
-                <Palmtree color="#F97316" size={24} />
+            <View key={index} style={styles.holidayModernCard}>
+              <View style={styles.holidayIconWrapper}>
+                <Palmtree color="#10B981" size={28} />
               </View>
-              <Text style={styles.birthdayName}>{item.name}</Text>
-              <Text style={[styles.birthdayDate, { color: '#0F172A' }]}>{new Date(item.date).toLocaleDateString()}</Text>
+              <View style={styles.holidayInfo}>
+                <Text style={styles.holidayName} numberOfLines={1}>{item.name}</Text>
+                <Text style={styles.holidayDate}>{new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
+              </View>
             </View>
           ))
         ) : (
-          <Text style={{color: '#0F172A', marginLeft: 16}}>No upcoming holidays</Text>
+          <View style={[styles.emptyCard, { marginLeft: 16, width: 250 }]}>
+            <Text style={styles.emptyText}>No upcoming holidays</Text>
+          </View>
         )}
       </ScrollView>
 
@@ -296,16 +346,18 @@ export default function MyDashboardScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
         {stats?.upcomingBirthdays && stats.upcomingBirthdays.length > 0 ? (
           stats.upcomingBirthdays.map((item: any, index: number) => (
-            <View key={item.id || index} style={styles.birthdayCard}>
-              <View style={styles.birthdayIcon}>
-                <Cake color="#F97316" size={24} />
+            <View key={item.id || index} style={styles.birthdayModernCard}>
+              <View style={styles.birthdayIconWrapper}>
+                <Cake color="#EC4899" size={24} />
               </View>
-              <Text style={styles.birthdayName}>{item.name}</Text>
-              <Text style={styles.birthdayDate}>{new Date(item.date).toLocaleDateString()}</Text>
+              <Text style={styles.birthdayModernName} numberOfLines={1}>{item.name}</Text>
+              <Text style={styles.birthdayModernDate}>{new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</Text>
             </View>
           ))
         ) : (
-          <Text style={{color: '#0F172A', marginLeft: 16}}>No upcoming birthdays</Text>
+          <View style={[styles.emptyCard, { marginLeft: 16, width: 250 }]}>
+            <Text style={styles.emptyText}>No upcoming birthdays</Text>
+          </View>
         )}
       </ScrollView>
 
@@ -314,26 +366,31 @@ export default function MyDashboardScreen() {
         <Text style={styles.sectionTitle}>My Tasks</Text>
       </View>
       {stats?.pendingTasks && stats.pendingTasks.length > 0 ? (
-        stats.pendingTasks.map((item: any, index: number) => (
-          <View key={item.id || index} style={styles.taskItem}>
-            <View style={styles.taskIcon}>
-              <CheckCircle color={item.status === 'Completed' ? '#0F172A' : '#F97316'} size={20} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.listTitle, item.status === 'Completed' && styles.completedText]}>{item.title}</Text>
-              <Text style={styles.listSubtitle}>{item.status}</Text>
-            </View>
-          </View>
-        ))
+        stats.pendingTasks.map((item: any, index: number) => {
+          const isCompleted = item.status === 'Completed';
+          return (
+            <TouchableOpacity key={item.id || index} style={[styles.taskModernItem, isCompleted && styles.taskCompletedItem]}>
+              <View style={styles.taskIconWrapper}>
+                <CheckCircle color={isCompleted ? '#10B981' : '#F59E0B'} size={24} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.taskTitle, isCompleted && styles.taskTitleCompleted]}>{item.title}</Text>
+                <Text style={styles.taskSubtitle}>{item.status}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        })
       ) : (
-        <Text style={{color: '#0F172A'}}>No tasks pending</Text>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>No tasks pending</Text>
+        </View>
       )}
-      
+
       {isEmployee && (
-        <FaceCheckInModal 
-          visible={isFaceModalVisible} 
-          onClose={() => setIsFaceModalVisible(false)} 
-          onSuccess={handleFaceMatchSuccess} 
+        <FaceCheckInModal
+          visible={isFaceModalVisible}
+          onClose={() => setIsFaceModalVisible(false)}
+          onSuccess={handleFaceMatchSuccess}
         />
       )}
     </ScrollView>
@@ -351,21 +408,44 @@ const styles = StyleSheet.create({
   },
   welcomeSection: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     marginBottom: 20,
     marginTop: 8,
   },
   greeting: {
     fontSize: 16,
-    color: '#0F172A',
-    marginBottom: 4,
+    color: '#64748B',
+    marginBottom: 2,
   },
   userName: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#0F172A',
     letterSpacing: 0.5,
+    textTransform: 'capitalize',
+  },
+  headerAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: '#F97316',
+  },
+  headerAvatarPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F97316',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(249, 115, 22, 0.2)',
+  },
+  headerAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -468,7 +548,8 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     marginBottom: 4,
   },
-  label: { fontSize: 14, color: '#F97316',
+  label: {
+    fontSize: 14, color: '#F97316',
     fontWeight: '500',
   },
   sectionHeader: {
@@ -507,67 +588,175 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 8,
   },
-  badgeGreen: { backgroundColor: '#FFFFFF' },
-  badgeRed: { backgroundColor: '#FFFFFF' },
-  badgeOrange: { backgroundColor: 'rgba(249, 115, 22, 0.1)' },
+  badgeGreen: { backgroundColor: '#ECFDF5' },
+  badgeRed: { backgroundColor: '#FEF2F2' },
+  badgeOrange: { backgroundColor: '#FFFBEB' },
+  textGreen: { color: '#059669', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+  textRed: { color: '#DC2626', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+  textOrange: { color: '#D97706', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#0F172A',
   },
   horizontalScroll: {
     marginHorizontal: -16,
     paddingHorizontal: 16,
+    paddingBottom: 8,
   },
-  birthdayCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
+  emptyCard: {
+    backgroundColor: '#F8FAFC',
     borderRadius: 16,
-    marginRight: 12,
-    width: 140,
+    padding: 24,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
   },
-  birthdayIcon: {
+  emptyText: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  leaveCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  leaveApproved: { borderLeftColor: '#10B981' },
+  leavePending: { borderLeftColor: '#F59E0B' },
+  leaveRejected: { borderLeftColor: '#EF4444' },
+  leaveContent: {
+    flex: 1,
+  },
+  leaveType: {
+    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  leaveDates: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  holidayModernCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    padding: 16,
+    borderRadius: 20,
+    marginRight: 16,
+    width: 240,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+  },
+  holidayIconWrapper: {
     width: 48,
     height: 48,
+    borderRadius: 16,
+    backgroundColor: '#D1FAE5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  holidayInfo: {
+    flex: 1,
+  },
+  holidayName: {
+    color: '#064E3B',
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  holidayDate: {
+    color: '#047857',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  birthdayModernCard: {
+    backgroundColor: '#FDF2F8',
+    padding: 20,
     borderRadius: 24,
-    backgroundColor: 'rgba(236, 72, 153, 0.1)',
+    marginRight: 16,
+    width: 140,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FCE7F3',
+  },
+  birthdayIconWrapper: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FBCFE8',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
-  birthdayName: {
-    color: '#0F172A',
+  birthdayModernName: {
+    color: '#831843',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
     marginBottom: 4,
   },
-  birthdayDate: {
-    color: '#0F172A',
-    fontSize: 12,
-    fontWeight: '500',
+  birthdayModernDate: {
+    color: '#BE185D',
+    fontSize: 13,
+    fontWeight: '600',
   },
-  taskItem: {
+  taskModernItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    borderRadius: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  taskIcon: {
+  taskCompletedItem: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#F1F5F9',
+  },
+  taskIconWrapper: {
     marginRight: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  completedText: {
-    textDecorationLine: 'line-through',
+  taskTitle: {
     color: '#0F172A',
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  taskTitleCompleted: {
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+  },
+  taskSubtitle: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '500',
   },
   hoursBadge: {
     flexDirection: 'row',

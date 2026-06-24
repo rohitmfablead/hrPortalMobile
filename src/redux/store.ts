@@ -13,6 +13,7 @@ import complaintReducer from './slices/complaintSlice';
 import performanceReducer from './slices/performanceSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import recruitmentReducer from './slices/recruitmentSlice';
+import masterReducer from './slices/masterSlice';
 
 export const store = configureStore({
   reducer: {
@@ -30,9 +31,9 @@ export const store = configureStore({
     performance: performanceReducer,
     dashboard: dashboardReducer,
     recruitment: recruitmentReducer,
+    master: masterReducer,
   },
 });
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
-

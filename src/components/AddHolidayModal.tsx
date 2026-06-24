@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, Text, TextInput, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import { View, StyleSheet, Modal, TouchableOpacity, Text,  Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import CustomTextInput from './CustomTextInput';
 import { X, Calendar as CalendarIcon, Edit3 } from 'lucide-react-native';
 
 export default function AddHolidayModal({ visible, onClose, onSave }: any) {
@@ -23,21 +24,19 @@ export default function AddHolidayModal({ visible, onClose, onSave }: any) {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Holiday Name</Text>
-              <View style={styles.inputContainer}>
-                <Edit3 color="#0F172A" size={20} style={styles.inputIcon} />
-                <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="e.g. Diwali" placeholderTextColor="#ffffff" />
-              </View>
-            </View>
+            <CustomTextInput
+              label="Holiday Name"
+              value={name} onChangeText={setName} placeholder="e.g. Diwali"
+              left={<CustomTextInput.Icon icon={() => <Edit3 color="#F97316" size={18} />} />}
+              
+            />
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Date</Text>
-              <View style={styles.inputContainer}>
-                <CalendarIcon color="#F97316" size={20} style={styles.inputIcon} />
-                <TextInput style={styles.input} value={date} onChangeText={setDate} placeholder="e.g. Nov 1, 2026" placeholderTextColor="#ffffff" />
-              </View>
-            </View>
+            <CustomTextInput
+              label="Date"
+              value={date} onChangeText={setDate} placeholder="e.g. Nov 1, 2026"
+              left={<CustomTextInput.Icon icon={() => <CalendarIcon color="#F97316" size={18} />} />}
+              
+            />
 
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
               <Text style={styles.saveBtnText}>Save Holiday</Text>

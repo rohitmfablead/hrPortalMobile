@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Platform, Dimensions } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Platform, Dimensions, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store';
 import { ShieldCheck, Calendar as CalendarIcon, CheckCircle2, Star, Edit3, Mail, Phone, MapPin, Droplet, Users } from 'lucide-react-native';
-import EditProfileModal from '../components/EditProfileModal';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
+  const navigation = useNavigation<any>();
   const { user } = useSelector((state: RootState) => state.auth);
-  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
   // Read-only state for display
   const [profileData, setProfileData] = useState({
@@ -37,11 +37,15 @@ export default function ProfileScreen() {
         <View style={[styles.leftCol, isWide && styles.leftColWide]}>
           <View style={styles.card}>
             <View style={styles.avatarWrapper}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {user?.name ? user.name.substring(0, 2).toUpperCase() : 'HR'}
-                </Text>
-              </View>
+              {user?.avatar ? (
+                <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>
+                    {user?.name ? user.name.substring(0, 2).toUpperCase() : 'HR'}
+                  </Text>
+                </View>
+              )}
             </View>
             <Text style={styles.userName}>{profileData.fullName}</Text>
             
@@ -96,15 +100,13 @@ export default function ProfileScreen() {
         {/* RIGHT COLUMN: Profile Details */}
         <View style={[styles.card, styles.rightCol, isWide && styles.rightColWide]}>
           <View style={styles.rightHeader}>
-            <View style={{ flex: 1, paddingRight: 16 }}>
-              <Text style={styles.sectionTitle}>Personal Information</Text>
-              <Text style={styles.sectionSubtitle}>View your contact details and preferences below.</Text>
-            </View>
-            <TouchableOpacity style={styles.editBtn} onPress={() => setIsEditModalVisible(true)}>
+            <Text style={styles.sectionTitle}>Personal Information</Text>
+            <TouchableOpacity style={styles.editBtn} onPress={() => navigation.navigate('EditProfile')}>
               <Edit3 color="#0F172A" size={16} />
               <Text style={styles.editBtnText}>Edit</Text>
             </TouchableOpacity>
           </View>
+          <Text style={styles.sectionSubtitle}>View your contact details and preferences below.</Text>
 
           <View style={styles.infoList}>
             {/* Full Name */}
@@ -173,13 +175,6 @@ export default function ProfileScreen() {
         </View>
 
       </View>
-
-      <EditProfileModal 
-        visible={isEditModalVisible} 
-        onClose={() => setIsEditModalVisible(false)} 
-        user={user}
-        onSave={handleSaveProfile} 
-      />
     </ScrollView>
   );
 }
@@ -195,6 +190,7 @@ const styles = StyleSheet.create({
   rightColWide: { },
   card: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, borderWidth: 1, borderColor: '#E2E8F0' },
   avatarWrapper: { alignItems: 'center', marginBottom: 16 },
+  avatarImage: { width: 100, height: 100, borderRadius: 50, borderWidth: 4, borderColor: 'rgba(249, 115, 22, 0.2)' },
   avatar: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#F97316', justifyContent: 'center', alignItems: 'center', borderWidth: 4, borderColor: 'rgba(249, 115, 22, 0.2)' },
   avatarText: { color: '#0F172A', fontSize: 32, fontWeight: 'bold' },
   userName: { color: '#0F172A', fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 4 },
@@ -216,9 +212,9 @@ const styles = StyleSheet.create({
   iconBg: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   quickStatNumber: { color: '#0F172A', fontSize: 28, fontWeight: 'bold', marginBottom: 4 },
   quickStatLabel: { color: '#0F172A', fontSize: 11, fontWeight: '600' },
-  rightHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-  sectionTitle: { color: '#0F172A', fontSize: 22, fontWeight: 'bold', marginBottom: 6 },
-  sectionSubtitle: { color: '#0F172A', fontSize: 14 },
+  rightHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  sectionTitle: { color: '#0F172A', fontSize: 22, fontWeight: 'bold' },
+  sectionSubtitle: { color: '#0F172A', fontSize: 14, marginBottom: 24, width: '100%' },
   editBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F97316', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 },
   editBtnText: { color: '#0F172A', fontSize: 14, fontWeight: '600', marginLeft: 6 },
   infoList: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -10 },

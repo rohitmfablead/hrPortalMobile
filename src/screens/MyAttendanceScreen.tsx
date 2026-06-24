@@ -1,235 +1,278 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Text, ActivityIndicator } from 'react-native';
-import { Calendar } from 'react-native-calendars';
-import { Plus, Calendar as CalendarIcon, Clock } from 'lucide-react-native';
+import { View, StyleSheet, ScrollView, Text, ActivityIndicator, TouchableOpacity, Alert, Platform } from 'react-native';
+import { Clock, CheckCircle2, XCircle, AlertCircle, LogIn, LogOut, CalendarIcon } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../redux/store';
 import { fetchMyAttendance } from '../redux/slices/attendanceSlice';
-import AddAttendanceModal from '../components/AddAttendanceModal';
-import { TouchableOpacity, Alert } from 'react-native';
-
-// Convert api data into marked dates for the calendar
-const generateMarkedDates = (records: any[]) => {
-  const marked: any = {};
-  
-  records.forEach((item: any) => {
-    // API returns date in "YYYY-MM-DD" or ISO string
-    const dateStr = item.date ? item.date.split('T')[0] : null;
-    if (dateStr) {
-      let dotColor = '#0F172A'; // Present (Green)
-      if (item.status === 'Absent' || item.status === 'absent') dotColor = '#0F172A'; // Red
-      else if (item.status === 'Late' || item.status === 'late') dotColor = '#F97316'; // Orange
-
-      marked[dateStr] = {
-        marked: true,
-        dotColor,
-        selectedColor: '#F97316',
-      };
-    }
-  });
-
-  return marked;
-};
+import { LinearGradient } from 'expo-linear-gradient';
+import api from '../services/api';
 
 export default function MyAttendanceScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { records, loading } = useSelector((state: RootState) => state.attendance);
 
-  const [selectedDate, setSelectedDate] = useState('');
-  const [isModalVisible, setModalVisible] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [todayShift, setTodayShift] = useState<any>(null);
 
   useEffect(() => {
     dispatch(fetchMyAttendance());
+    
+    const fetchStatus = async () => {
+      try {
+        const res = await api.get('/attendance/today-status');
+        if (res.data?.success) {
+          setTodayShift(res.data.data);
+        }
+      } catch (err) {
+        console.log('Error fetching today status', err);
+      }
+    };
+    fetchStatus();
+    
+    // Live Clock
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
   }, [dispatch]);
-
-  const markedDates = generateMarkedDates(records || []);
-
-  const handleDayPress = (day: any) => {
-    setSelectedDate(day.dateString);
-  };
-
-  const handleAddAttendance = (date: string, checkIn: string, checkOut: string, status: string) => {
-    Alert.alert('Info', 'Manual attendance marking will be processed via API');
-    setModalVisible(false);
-  };
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#F97316"/></View>;
 
+  // Dummy monthly stats
+  const presentDays = records?.filter((r: any) => r.status?.toLowerCase() !== 'absent')?.length || 0;
+  const absentDays = records?.filter((r: any) => r.status?.toLowerCase() === 'absent')?.length || 0;
+  const leaveDays = 0;
+
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>My Attendance</Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        
+        {/* Today Status Card */}
+        <LinearGradient 
+          colors={['#F97316', '#EA580C']} 
+          style={styles.todayCard}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Text style={styles.dateText}>
+            {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+          </Text>
+          <Text style={styles.timeText}>
+            {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </Text>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Calendar View */}
-        <View style={styles.calendarCard}>
-          <Calendar
-            current={'2026-10-01'}
-            onDayPress={handleDayPress}
-            markedDates={{
-              ...markedDates,
-              [selectedDate]: { ...markedDates[selectedDate], selected: true, disableTouchEvent: true, selectedDotColor: 'orange' }
-            }}
-            theme={{
-              backgroundColor: '#FFFFFF',
-              calendarBackground: '#FFFFFF',
-              textSectionTitleColor: '#0F172A',
-              selectedDayBackgroundColor: '#F97316',
-              selectedDayTextColor: '#FFFFFF',
-              todayTextColor: '#F97316',
-              dayTextColor: '#0F172A',
-              textDisabledColor: '#9CA3AF',
-              dotColor: '#0F172A',
-              selectedDotColor: '#0F172A',
-              arrowColor: '#F97316',
-              monthTextColor: '#0F172A',
-              indicatorColor: '#0F172A',
-              textDayFontWeight: '500',
-              textMonthFontWeight: 'bold',
-              textDayHeaderFontWeight: '600',
-              textDayFontSize: 16,
-              textMonthFontSize: 16,
-              textDayHeaderFontSize: 14
-            }}
-          />
-        </View>
+          <View style={styles.todayMetricsRow}>
+            <View style={styles.todayMetricCol}>
+              <Text style={styles.todayMetricLabel}>Check In</Text>
+              <Text style={styles.todayMetricValue}>{todayShift?.checkIn || '--:--'}</Text>
+            </View>
+            <View style={styles.todayMetricDivider} />
+            <View style={styles.todayMetricCol}>
+              <Text style={styles.todayMetricLabel}>Check Out</Text>
+              <Text style={styles.todayMetricValue}>{todayShift?.checkOut || '--:--'}</Text>
+            </View>
+            <View style={styles.todayMetricDivider} />
+            <View style={styles.todayMetricCol}>
+              <Text style={styles.todayMetricLabel}>Working HRs</Text>
+              <Text style={styles.todayMetricValue}>{todayShift?.hoursCompleted || '0h 0m'}</Text>
+            </View>
+          </View>
+        </LinearGradient>
 
-        {/* Legend */}
-        <View style={styles.legendContainer}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#FFFFFF' }]} />
-            <Text style={styles.legendText}>Present</Text>
+        {/* Monthly Summary */}
+        <Text style={styles.sectionTitle}>Monthly Summary</Text>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryValue}>{presentDays}</Text>
+            <Text style={styles.summaryLabel}>Present</Text>
           </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#F97316' }]} />
-            <Text style={styles.legendText}>Late</Text>
+          <View style={styles.summaryCard}>
+            <Text style={[styles.summaryValue, {color: '#DC2626'}]}>{absentDays}</Text>
+            <Text style={styles.summaryLabel}>Absent</Text>
           </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: '#FFFFFF' }]} />
-            <Text style={styles.legendText}>Absent</Text>
+          <View style={styles.summaryCard}>
+            <Text style={[styles.summaryValue, {color: '#D97706'}]}>{leaveDays}</Text>
+            <Text style={styles.summaryLabel}>Leave</Text>
           </View>
         </View>
 
         {/* Recent List */}
-        <Text style={styles.sectionTitle}>Recent Records</Text>
-        {records && records.length > 0 ? records.map((item: any, index: number) => (
-          <View key={item.id || index} style={styles.listItem}>
-            <View style={styles.listLeft}>
-              <View style={styles.iconContainer}>
-                <CalendarIcon color="#F97316" size={20} />
+        <Text style={styles.sectionTitle}>Attendance History</Text>
+        {records && records.length > 0 ? records.map((item: any, index: number) => {
+          const status = item.status?.toLowerCase() || 'present';
+          let badgeStyle = styles.badgeGreen;
+          let textStyle = styles.textGreen;
+          if (status === 'absent') {
+            badgeStyle = styles.badgeRed;
+            textStyle = styles.textRed;
+          } else if (status === 'late') {
+            badgeStyle = styles.badgeOrange;
+            textStyle = styles.textOrange;
+          }
+
+          return (
+            <View key={item.id || item._id || index} style={styles.listItem}>
+              <View style={styles.listLeft}>
+                <View style={styles.dateBox}>
+                  <Text style={styles.dateBoxDay}>{item.date ? new Date(item.date).getDate() : '--'}</Text>
+                  <Text style={styles.dateBoxMonth}>{item.date ? new Date(item.date).toLocaleString('default', { month: 'short' }) : '--'}</Text>
+                </View>
+                <View>
+                  <Text style={styles.listTitle}>{item.date ? new Date(item.date).toLocaleDateString('en-US', {weekday: 'long'}) : 'Day'}</Text>
+                  <View style={styles.timeRow}>
+                    <Text style={styles.listSubtitle}>In: {item.checkIn || '-'}  Out: {item.checkOut || '-'}</Text>
+                  </View>
+                </View>
               </View>
-              <View>
-                <Text style={styles.listTitle}>{item.date ? item.date.split('T')[0] : 'Unknown Date'}</Text>
-                <View style={styles.timeRow}>
-                  <Clock color="#F97316" size={14} style={{ marginRight: 4 }} />
-                  <Text style={styles.listSubtitle}>In: {item.checkIn || '-'} | Out: {item.checkOut || '-'}</Text>
+              <View style={styles.listRight}>
+                <View style={[styles.statusBadge, badgeStyle]}>
+                  <Text style={[styles.statusText, textStyle]}>{item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Present'}</Text>
                 </View>
               </View>
             </View>
-            <View style={[
-              styles.statusBadge, 
-              (item.status === 'Absent' || item.status === 'absent') ? styles.badgeRed : 
-              ((item.status === 'Late' || item.status === 'late') ? styles.badgeOrange : styles.badgeGreen)
-            ]}>
-              <Text style={styles.statusText}>{item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : 'Present'}</Text>
-            </View>
+          );
+        }) : (
+          <View style={styles.emptyState}>
+            <CalendarIcon color="#CBD5E1" size={48} />
+            <Text style={styles.emptyText}>No attendance history found</Text>
           </View>
-        )) : (
-          <Text style={{color: '#0F172A'}}>No attendance records found</Text>
         )}
       </ScrollView>
-
-      <AddAttendanceModal 
-        visible={isModalVisible} 
-        onClose={() => setModalVisible(false)} 
-        onSave={handleAddAttendance} 
-      />
     </View>
   );
 }
 
+const shadowStyle = Platform.select({
+  web: { boxShadow: '0px 4px 16px rgba(15, 23, 42, 0.04)' } as any,
+  default: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2 }
+});
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
   },
   center: {
     flex: 1, 
     justifyContent: 'center', 
     alignItems: 'center', 
-    backgroundColor: '#FFFFFF'
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 24,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  title: {
-    color: '#0F172A',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F97316',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  addBtnText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    marginLeft: 6,
+    backgroundColor: '#F8FAFC'
   },
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
   },
-  calendarCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 16,
+  todayCard: {
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 24,
+    ...Platform.select({
+      web: { boxShadow: '0px 8px 24px rgba(249, 115, 22, 0.2)' } as any,
+      default: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 6 }
+    })
   },
-  legendContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+  dateText: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  timeText: {
+    color: '#FFFFFF',
+    fontSize: 40,
+    fontWeight: '800',
     marginBottom: 24,
   },
-  legendItem: {
+  todayMetricsRow: {
     flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    width: '100%',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 8,
+  todayMetricCol: {
+    alignItems: 'center',
+    flex: 1,
   },
-  legendText: {
-    color: '#0F172A',
-    fontSize: 14,
-    fontWeight: '500',
+  todayMetricLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  todayMetricValue: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  todayMetricDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 32,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+    ...shadowStyle,
+  },
+  checkInBtn: {
+    backgroundColor: '#10B981',
+  },
+  checkOutBtn: {
+    backgroundColor: '#EF4444',
+  },
+  actionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '800',
     color: '#0F172A',
     marginBottom: 16,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+  },
+  summaryCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    marginHorizontal: 4,
+    ...shadowStyle,
+  },
+  summaryValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#10B981',
+    marginBottom: 4,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
   },
   listItem: {
     flexDirection: 'row',
@@ -237,28 +280,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    ...shadowStyle,
   },
   listLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+  dateBox: {
+    width: 48,
+    height: 48,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  dateBoxDay: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  dateBoxMonth: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
   },
   listTitle: {
     color: '#0F172A',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 4,
   },
   timeRow: {
@@ -266,20 +321,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listSubtitle: {
-    color: '#0F172A',
+    color: '#64748B',
     fontSize: 13,
+    fontWeight: '500',
+  },
+  listRight: {
+    alignItems: 'flex-end',
   },
   statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  badgeGreen: { backgroundColor: '#FFFFFF' },
-  badgeRed: { backgroundColor: '#FFFFFF' },
-  badgeOrange: { backgroundColor: 'rgba(249, 115, 22, 0.1)' },
+  badgeGreen: { backgroundColor: '#ECFDF5' },
+  badgeRed: { backgroundColor: '#FEF2F2' },
+  badgeOrange: { backgroundColor: '#FFFBEB' },
+  textGreen: { color: '#059669' },
+  textRed: { color: '#DC2626' },
+  textOrange: { color: '#D97706' },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyText: {
+    marginTop: 12,
+    color: '#64748B',
+    fontSize: 15,
+  }
 });

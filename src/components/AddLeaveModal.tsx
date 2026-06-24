@@ -1,23 +1,72 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, Text, TextInput, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
-import { X, Calendar as CalendarIcon, AlignLeft } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Modal, TouchableOpacity, Text, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
+import CustomTextInput from './CustomTextInput';
+import CustomDropdown from './CustomDropdown';
+import CustomDatePicker from './CustomDatePicker';
+import { X, Calendar as CalendarIcon, AlignLeft, User, Tag } from 'lucide-react-native';
+
+import api from '../services/api';
 
 type AddLeaveModalProps = {
   visible: boolean;
   onClose: () => void;
-  onSave: (type: string, start: string, end: string, status: string) => void;
+  onSave: () => void;
+  leaveTypes?: any[];
 };
 
-export default function AddLeaveModal({ visible, onClose, onSave }: AddLeaveModalProps) {
+export default function AddLeaveModal({ visible, onClose, onSave, leaveTypes = [] }: AddLeaveModalProps) {
   const [leaveType, setLeaveType] = useState('Sick Leave');
-  const [startDate, setStartDate] = useState('Oct 10, 2026');
-  const [endDate, setEndDate] = useState('Oct 12, 2026');
+  const [employeeId, setEmployeeId] = useState('');
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [fetchedLeaveTypes, setFetchedLeaveTypes] = useState<any[]>([]);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSave = () => {
-    // For normal employees, new leaves usually start as Pending.
-    onSave(leaveType, startDate, endDate, 'Pending');
-    onClose();
+  useEffect(() => {
+    if (visible) {
+      api.get('/employees').then(res => {
+        const emps = Array.isArray(res.data) ? res.data : (res.data.data?.employees || res.data.data || []);
+        setEmployees(emps);
+      }).catch(err => console.log('Error fetching employees:', err));
+
+      api.get('/leave-types').then(res => {
+        const lts = Array.isArray(res.data) ? res.data : (res.data.data?.leaveTypes || res.data.data || []);
+        setFetchedLeaveTypes(lts);
+      }).catch(err => console.log('Error fetching leave types:', err));
+    }
+  }, [visible]);
+
+  const handleSave = async () => {
+    if (!startDate || !endDate || !reason) {
+      alert('Please fill all fields');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await api.post('/leaves/apply', {
+        employeeId,
+        leaveType,
+        fromDate: new Date(startDate).toISOString().split('T')[0],
+        toDate: new Date(endDate).toISOString().split('T')[0],
+        reason
+      });
+      if (res.data.success) {
+        onSave();
+        onClose();
+        // Reset fields
+        setStartDate('');
+        setEndDate('');
+        setReason('');
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.response?.data?.error?.message || 'Failed to apply leave');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -35,68 +84,54 @@ export default function AddLeaveModal({ visible, onClose, onSave }: AddLeaveModa
               </TouchableOpacity>
             </View>
 
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Leave Type</Text>
-              <View style={styles.typeButtonsContainer}>
-                {['Sick Leave', 'Casual Leave', 'Vacation'].map(type => (
-                  <TouchableOpacity 
-                    key={type} 
-                    style={[styles.typeBtn, leaveType === type && styles.typeBtnActive]}
-                    onPress={() => setLeaveType(type)}
-                  >
-                    <Text style={[styles.typeBtnText, leaveType === type && styles.typeBtnTextActive]}>{type}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+            <CustomDropdown
+              label="Employee"
+              value={employeeId}
+              onSelect={setEmployeeId}
+              options={employees.map(emp => ({ label: emp.firstName ? `${emp.firstName} ${emp.lastName}` : emp.name || 'Unknown', value: emp._id || emp.id }))}
+              placeholder="Select Employee"
+              icon={() => <User color="#F97316" size={18} />}
+            />
+
+            <CustomDropdown
+              label="Leave Type"
+              value={leaveType}
+              onSelect={setLeaveType}
+              options={(fetchedLeaveTypes.length > 0 ? fetchedLeaveTypes : leaveTypes).map(lt => ({ label: lt.name || lt.title || lt.type || lt, value: lt.name || lt.title || lt.type || lt }))}
+              placeholder="Select Leave Type"
+              icon={() => <Tag color="#F97316" size={18} />}
+            />
 
             <View style={styles.formGroupRow}>
               <View style={[styles.formGroup, { flex: 1, marginRight: 8 }]}>
-                <Text style={styles.label}>Start Date</Text>
-                <View style={styles.inputContainer}>
-                  <CalendarIcon color="#F97316" size={20} style={styles.inputIcon} />
-                  <TextInput 
-                    style={styles.input} 
-                    value={startDate} 
-                    onChangeText={setStartDate}
-                    placeholder="Oct 10, 2026"
-                    placeholderTextColor="#ffffff"
-                  />
-                </View>
+                <CustomDatePicker
+                  label="Start Date"
+                  value={startDate} 
+                  onDateChange={setStartDate}
+                />
               </View>
 
               <View style={[styles.formGroup, { flex: 1, marginLeft: 8 }]}>
-                <Text style={styles.label}>End Date</Text>
-                <View style={styles.inputContainer}>
-                  <CalendarIcon color="#F97316" size={20} style={styles.inputIcon} />
-                  <TextInput 
-                    style={styles.input} 
-                    value={endDate} 
-                    onChangeText={setEndDate}
-                    placeholder="Oct 12, 2026"
-                    placeholderTextColor="#ffffff"
-                  />
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Reason</Text>
-              <View style={[styles.inputContainer, { height: 100, alignItems: 'flex-start', paddingTop: 12 }]}>
-                <AlignLeft color="#F97316" size={20} style={styles.inputIcon} />
-                <TextInput 
-                  style={[styles.input, { height: 76 }]} 
-                  value={reason} 
-                  onChangeText={setReason}
-                  placeholder="Enter reason..."
-                  placeholderTextColor="#ffffff"
-                  multiline
+                <CustomDatePicker
+                  label="End Date"
+                  value={endDate} 
+                  onDateChange={setEndDate}
                 />
               </View>
             </View>
 
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-              <Text style={styles.saveBtnText}>Submit Application</Text>
+            <CustomTextInput
+              label="Reason"
+              value={reason} 
+              onChangeText={setReason}
+              placeholder="Enter reason..."
+              multiline
+              numberOfLines={3}
+              left={<CustomTextInput.Icon icon={() => <AlignLeft color="#F97316" size={18} />} />}
+            />
+
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={loading}>
+              <Text style={styles.saveBtnText}>{loading ? 'Submitting...' : 'Submit Application'}</Text>
             </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>

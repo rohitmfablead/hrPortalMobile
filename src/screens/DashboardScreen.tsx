@@ -1,12 +1,12 @@
 // src/screens/DashboardScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import api from '../services/api';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../redux/store';
 import { fetchDashboardData } from '../redux/slices/dashboardSlice';
-import { Users, CalendarCheck, Clock, CalendarOff, LogIn, LogOut, Cake, CheckCircle } from 'lucide-react-native';
+import { Users, CalendarCheck, Clock, CalendarOff, LogIn, LogOut, Cake, CheckCircle, Palmtree, BookOpen, Megaphone, MessageSquare, LineChart, Bell } from 'lucide-react-native';
 import { markManualAttendance } from '../redux/slices/attendanceSlice';
 import { useNavigation } from '@react-navigation/native';
 import { mockAttendance, mockLeaves, mockBirthdays, mockTasks } from '../mockData/mockData';
@@ -24,6 +24,13 @@ const DashboardScreen = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigation = useNavigation<any>();
   const { data: stats, loading, error } = useSelector((state: RootState) => state.dashboard);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning,';
+    if (hour < 17) return 'Good Afternoon,';
+    return 'Good Evening,';
+  };
 
   useEffect(() => {
     dispatch(fetchDashboardData('today'));
@@ -46,8 +53,17 @@ const DashboardScreen = () => {
 
       {/* Welcome Section */}
       <View style={styles.welcomeSection}>
-        <View>
-          <Text style={styles.greeting}>Good Morning,</Text>
+        {user?.avatar ? (
+          <Image source={{ uri: user.avatar }} style={styles.headerAvatar} />
+        ) : (
+          <View style={styles.headerAvatarPlaceholder}>
+            <Text style={styles.headerAvatarText}>
+              {user?.name ? user.name.substring(0, 2).toUpperCase() : 'AD'}
+            </Text>
+          </View>
+        )}
+        <View style={{ marginLeft: 16, flex: 1 }}>
+          <Text style={styles.greeting}>{getGreeting()}</Text>
           <Text style={styles.userName}>{user?.name || 'Admin'} 👋</Text>
         </View>
       </View>
@@ -57,12 +73,12 @@ const DashboardScreen = () => {
       <Text style={styles.sectionTitle}>Quick Links</Text>
       <View style={styles.quickLinksContainer}>
         {[
-          { name: 'Holidays', route: 'Holidays', icon: require('lucide-react-native').Palmtree, color: '#F97316' },
-          { name: 'Rules', route: 'Rules', icon: require('lucide-react-native').BookOpen, color: '#F97316' },
-          { name: 'Announcements', route: 'Announcements', icon: require('lucide-react-native').Megaphone, color: '#F97316' },
-          { name: 'Feedback', route: 'Feedback', icon: require('lucide-react-native').MessageSquare, color: '#F97316' },
-          { name: 'Performance', route: 'Performances', icon: require('lucide-react-native').LineChart, color: '#F97316' },
-          { name: 'Notifications', route: 'Notifications', icon: require('lucide-react-native').Bell, color: '#F97316' },
+          { name: 'Holidays', route: 'Holidays', icon: Palmtree, color: '#F97316' },
+          { name: 'Rules', route: 'Rules', icon: BookOpen, color: '#F97316' },
+          { name: 'Announcements', route: 'Announcements', icon: Megaphone, color: '#F97316' },
+          { name: 'Feedback', route: 'Feedback', icon: MessageSquare, color: '#F97316' },
+          { name: 'Performance', route: 'Performances', icon: LineChart, color: '#F97316' },
+          { name: 'Notifications', route: 'Notifications', icon: Bell, color: '#F97316' },
         ].map((link) => {
           const Icon = link.icon;
           return (
@@ -170,15 +186,18 @@ const DashboardScreen = () => {
       </View>
       {stats?.recentActivities && stats.recentActivities.length > 0 ? (
         stats.recentActivities.slice(0, 3).map((item: any, index: number) => (
-          <View key={index} style={styles.listItem}>
+          <View key={index} style={styles.activityModernCard}>
+            <View style={styles.activityDot} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.listTitle}>{item.message}</Text>
-              <Text style={styles.listSubtitle}>{new Date(item.date).toLocaleDateString()}</Text>
+              <Text style={styles.activityMessage}>{item.message}</Text>
+              <Text style={styles.activityDate}>{new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</Text>
             </View>
           </View>
         ))
       ) : (
-        <Text style={{ color: '#0F172A' }}>No recent activities</Text>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>No recent activities</Text>
+        </View>
       )}
 
       {/* Leave Overview */}
@@ -189,18 +208,24 @@ const DashboardScreen = () => {
         </TouchableOpacity>
       </View>
       {stats?.leaveOverview && stats.leaveOverview.length > 0 ? (
-        stats.leaveOverview.map((item: any, index: number) => (
-          <View key={index} style={styles.listItem}>
-            <View>
-              <Text style={styles.listTitle}>{item.name} Leaves</Text>
+        stats.leaveOverview.map((item: any, index: number) => {
+          const isApproved = item.name === 'Approved';
+          const isPending = item.name === 'Pending';
+          return (
+            <View key={index} style={[styles.leaveCard, isApproved ? styles.leaveApproved : (isPending ? styles.leavePending : styles.leaveRejected)]}>
+              <View style={styles.leaveContent}>
+                <Text style={styles.leaveType}>{item.name} Leaves</Text>
+              </View>
+              <View style={[styles.statusBadge, isApproved ? styles.badgeGreen : (isPending ? styles.badgeOrange : styles.badgeRed)]}>
+                <Text style={[styles.statusText, isApproved ? styles.textGreen : (isPending ? styles.textOrange : styles.textRed)]}>{item.value}</Text>
+              </View>
             </View>
-            <View style={[styles.statusBadge, item.name === 'Approved' ? styles.badgeGreen : (item.name === 'Rejected' ? styles.badgeRed : styles.badgeOrange)]}>
-              <Text style={styles.statusText}>{item.value}</Text>
-            </View>
-          </View>
-        ))
+          );
+        })
       ) : (
-        <Text style={{ color: '#0F172A' }}>No leave data</Text>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>No leave data</Text>
+        </View>
       )}
 
       {/* Upcoming Birthdays */}
@@ -210,34 +235,21 @@ const DashboardScreen = () => {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
         {stats?.upcomingBirthdays && stats.upcomingBirthdays.length > 0 ? (
           stats.upcomingBirthdays.map((item: any, index: number) => (
-            <View key={item.id || index} style={styles.birthdayCard}>
-              <View style={styles.birthdayIcon}>
-                <Cake color="#F97316" size={24} />
+            <View key={item.id || index} style={styles.birthdayModernCard}>
+              <View style={styles.birthdayIconWrapper}>
+                <Cake color="#EC4899" size={24} />
               </View>
-              <Text style={styles.birthdayName}>{item.name}</Text>
-              <Text style={styles.birthdayDate}>{new Date(item.date).toLocaleDateString()}</Text>
+              <Text style={styles.birthdayModernName} numberOfLines={1}>{item.name}</Text>
+              <Text style={styles.birthdayModernDate}>{new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</Text>
             </View>
           ))
         ) : (
-          <Text style={{ color: '#0F172A', marginLeft: 16 }}>No upcoming birthdays</Text>
+          <View style={[styles.emptyCard, { marginLeft: 16, width: 250 }]}>
+            <Text style={styles.emptyText}>No upcoming birthdays</Text>
+          </View>
         )}
       </ScrollView>
 
-      {/* Pending Tasks */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Pending Tasks</Text>
-      </View>
-      {mockTasks.map((item) => (
-        <View key={item.id} style={styles.taskItem}>
-          <View style={styles.taskIcon}>
-            <CheckCircle color={item.status === 'Completed' ? '#0F172A' : '#F97316'} size={20} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.listTitle, item.status === 'Completed' && styles.completedText]}>{item.title}</Text>
-            <Text style={styles.listSubtitle}>Due: {item.deadline}</Text>
-          </View>
-        </View>
-      ))}
     </ScrollView>
   );
 };
@@ -270,21 +282,43 @@ const styles = StyleSheet.create({
   },
   welcomeSection: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     marginBottom: 20,
     marginTop: 8,
   },
   greeting: {
     fontSize: 16,
-    color: '#0F172A',
-    marginBottom: 4,
+    color: '#64748B',
+    marginBottom: 2,
   },
   userName: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#0F172A',
     letterSpacing: 0.5,
+  },
+  headerAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: '#F97316',
+  },
+  headerAvatarPlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#F97316',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(249, 115, 22, 0.2)',
+  },
+  headerAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -427,67 +461,169 @@ const styles = StyleSheet.create({
   statusBadge: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 8,
   },
-  badgeGreen: { backgroundColor: '#FFFFFF' },
-  badgeRed: { backgroundColor: '#FFFFFF' },
-  badgeOrange: { backgroundColor: 'rgba(249, 115, 22, 0.1)' },
+  badgeGreen: { backgroundColor: '#ECFDF5' },
+  badgeRed: { backgroundColor: '#FEF2F2' },
+  badgeOrange: { backgroundColor: '#FFFBEB' },
+  textGreen: { color: '#059669', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+  textRed: { color: '#DC2626', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+  textOrange: { color: '#D97706', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
   statusText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#0F172A',
   },
   horizontalScroll: {
     marginHorizontal: -16,
     paddingHorizontal: 16,
+    paddingBottom: 8,
   },
-  birthdayCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
+  emptyCard: {
+    backgroundColor: '#F8FAFC',
     borderRadius: 16,
-    marginRight: 12,
-    width: 140,
+    padding: 24,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    borderStyle: 'dashed',
   },
-  birthdayIcon: {
-    width: 48,
-    height: 48,
+  emptyText: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  activityModernCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  activityDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#3B82F6',
+    marginTop: 4,
+    marginRight: 12,
+  },
+  activityMessage: {
+    color: '#0F172A',
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  activityDate: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  leaveCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  leaveApproved: { borderLeftColor: '#10B981' },
+  leavePending: { borderLeftColor: '#F59E0B' },
+  leaveRejected: { borderLeftColor: '#EF4444' },
+  leaveContent: {
+    flex: 1,
+  },
+  leaveType: {
+    color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  birthdayModernCard: {
+    backgroundColor: '#FDF2F8',
+    padding: 20,
     borderRadius: 24,
-    backgroundColor: 'rgba(236, 72, 153, 0.1)',
+    marginRight: 16,
+    width: 140,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FCE7F3',
+  },
+  birthdayIconWrapper: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FBCFE8',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
-  birthdayName: {
-    color: '#0F172A',
+  birthdayModernName: {
+    color: '#831843',
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
     marginBottom: 4,
   },
-  birthdayDate: {
-    color: '#0F172A',
-    fontSize: 12,
-    fontWeight: '500',
+  birthdayModernDate: {
+    color: '#BE185D',
+    fontSize: 13,
+    fontWeight: '600',
   },
-  taskItem: {
+  taskModernItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
+    borderRadius: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  taskIcon: {
+  taskCompletedItem: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#F1F5F9',
+  },
+  taskIconWrapper: {
     marginRight: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  completedText: {
-    textDecorationLine: 'line-through',
+  taskTitle: {
     color: '#0F172A',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  taskTitleCompleted: {
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+  },
+  taskSubtitle: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '500',
   },
   weeklyCard: {
     backgroundColor: '#FFFFFF',
