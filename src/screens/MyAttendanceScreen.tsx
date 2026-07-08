@@ -63,13 +63,13 @@ export default function MyAttendanceScreen() {
 
           <View style={styles.todayMetricsRow}>
             <View style={styles.todayMetricCol}>
-              <Text style={styles.todayMetricLabel}>Check In</Text>
-              <Text style={styles.todayMetricValue}>{todayShift?.checkIn || '--:--'}</Text>
+              <Text style={styles.todayMetricLabel}>1st Log</Text>
+              <Text style={styles.todayMetricValue}>{todayShift?.checkIn || '--:--'} - {todayShift?.checkOut || '--:--'}</Text>
             </View>
             <View style={styles.todayMetricDivider} />
             <View style={styles.todayMetricCol}>
-              <Text style={styles.todayMetricLabel}>Check Out</Text>
-              <Text style={styles.todayMetricValue}>{todayShift?.checkOut || '--:--'}</Text>
+              <Text style={styles.todayMetricLabel}>2nd Log</Text>
+              <Text style={styles.todayMetricValue}>{todayShift?.checkIn2 || '--:--'} - {todayShift?.checkOut2 || '--:--'}</Text>
             </View>
             <View style={styles.todayMetricDivider} />
             <View style={styles.todayMetricCol}>
@@ -120,7 +120,7 @@ export default function MyAttendanceScreen() {
                 <View>
                   <Text style={styles.listTitle}>{item.date ? new Date(item.date).toLocaleDateString('en-US', {weekday: 'long'}) : 'Day'}</Text>
                   <View style={styles.timeRow}>
-                    <Text style={styles.listSubtitle}>In: {item.checkIn || '-'}  Out: {item.checkOut || '-'}</Text>
+                    <Text style={styles.listSubtitle}>1st: {item.checkIn || '-'} - {item.checkOut || '-'} {item.checkIn2 ? `| 2nd: ${item.checkIn2} - ${item.checkOut2 || '-'}` : ''}</Text>
                   </View>
                 </View>
               </View>

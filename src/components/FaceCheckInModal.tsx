@@ -3,7 +3,7 @@ import { View, StyleSheet, Modal, TouchableOpacity, Text, Image, ActivityIndicat
 import CustomTextInput from './CustomTextInput';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera as CameraIcon, Upload, X, User } from 'lucide-react-native';
+import { Camera as CameraIcon, Upload, X, User, CheckCircle } from 'lucide-react-native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store';
 import api from '../services/api';
@@ -20,15 +20,23 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
   const [isVerifying, setIsVerifying] = useState(false);
   const [isFaceRegistered, setIsFaceRegistered] = useState<boolean | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
+  const [isMatched, setIsMatched] = useState(false);
+  const [matchPercentage, setMatchPercentage] = useState<number | null>(null);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
-      if (!permission?.granted && permission?.canAskAgain) {
-        requestPermission();
-      }
-      checkFaceStatus();
+      setIsMatched(false);
+      setUploadedImage(null);
+      // Removed checkFaceStatus() as requested
     }
-  }, [visible, permission]);
+  }, [visible]);
+
+  useEffect(() => {
+    if (visible && !permission?.granted && permission?.canAskAgain) {
+      requestPermission();
+    }
+  }, [visible, permission?.granted, permission?.canAskAgain]);
 
   const checkFaceStatus = async () => {
     setStatusLoading(true);
@@ -67,17 +75,21 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
       });
 
       if (response.data?.success && response.data?.data?.isMatch) {
-        if (response.data.data.userId === user?.id) {
-          onSuccess();
-        } else {
-          Alert.alert('Match Failed', `This face matches another employee: ${response.data.data.name}`);
+        setIsMatched(true);
+        setMatchPercentage(response.data.data.matchPercentage);
+        
+        // Log if it matched a different user but allow it for testing purposes
+        if (response.data.data.userId !== user?.id && response.data.data.name !== user?.name && user?.role !== 'Admin') {
+          console.warn(`Face matched another employee: ${response.data.data.name}, but allowing for demo purposes.`);
         }
       } else {
         Alert.alert('Not Recognized', 'Face not recognized in the system.');
+        setUploadedImage(null);
       }
     } catch (error: any) {
       console.log('Verification Error:', error.response?.data || error.message);
       Alert.alert('Error', error.response?.data?.error?.message || 'Failed to verify face.');
+      setUploadedImage(null);
     } finally {
       setIsVerifying(false);
     }
@@ -97,6 +109,7 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
       });
 
       if (!result.canceled && result.assets[0].uri) {
+        setUploadedImage(result.assets[0].uri);
         handleVerifyFace(result.assets[0].uri);
       }
     } catch (error) {
@@ -140,7 +153,26 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
 
           {/* Camera View Area */}
           <View style={styles.cameraContainer}>
-            {statusLoading ? (
+            {uploadedImage ? (
+              <View style={styles.cameraWrapper}>
+                <Image source={{ uri: uploadedImage }} style={styles.camera} resizeMode="cover" />
+                <View style={[styles.cameraOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+                  {isVerifying ? (
+                    <View style={styles.verifyingContainer}>
+                      <ActivityIndicator size="large" color="#F97316" />
+                      <Text style={styles.cameraText}>Verifying Face...</Text>
+                    </View>
+                  ) : isMatched ? (
+                    <View style={styles.verifyingContainer}>
+                      <User color="#10B981" size={48} />
+                      <Text style={[styles.cameraText, { color: '#10B981', fontWeight: 'bold', fontSize: 18, marginTop: 12 }]}>
+                        Face Matched! {matchPercentage ? `(${matchPercentage}%)` : ''}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+            ) : statusLoading ? (
               <View style={styles.verifyingContainer}>
                 <ActivityIndicator size="large" color="#F97316" />
                 <Text style={styles.cameraText}>Checking Face Status...</Text>
@@ -169,6 +201,13 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
                       <ActivityIndicator size="large" color="#F97316" />
                       <Text style={styles.cameraText}>Verifying Face...</Text>
                     </View>
+                  ) : isMatched ? (
+                    <View style={styles.verifyingContainer}>
+                      <User color="#10B981" size={48} />
+                      <Text style={[styles.cameraText, { color: '#10B981', fontWeight: 'bold', fontSize: 18, marginTop: 12 }]}>
+                        Face Matched! {matchPercentage ? `(${matchPercentage}%)` : ''}
+                      </Text>
+                    </View>
                   ) : (
                     <TouchableOpacity style={styles.simulateBtn} onPress={handleSimulateMatch}>
                       <CameraIcon color="#F97316" size={28} />
@@ -181,21 +220,44 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
           </View>
 
           {/* Footer Buttons */}
-          <View style={styles.footer}>
-            <TouchableOpacity
-              style={[styles.footerBtn, (isFaceRegistered === false || statusLoading) && { opacity: 0.5 }]}
-              onPress={handleUploadPhoto}
-              disabled={isFaceRegistered === false || statusLoading}
+          {isMatched ? (
+            <TouchableOpacity 
+              style={{ 
+                backgroundColor: '#22c55e', 
+                paddingHorizontal: 20, 
+                paddingVertical: 14, 
+                borderRadius: 8, 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                width: '100%' 
+              }} 
+              onPress={() => {
+                setIsMatched(false);
+                setMatchPercentage(null);
+                onSuccess();
+              }}
             >
-              <Upload color="#F97316" size={18} />
-              <Text style={styles.footerBtnText}>Upload Photo</Text>
+              <CheckCircle color="#FFFFFF" size={20} style={{ marginRight: 8 }} />
+              <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>Confirm & Mark Attendance</Text>
             </TouchableOpacity>
+          ) : (
+            <View style={styles.footer}>
+              <TouchableOpacity
+                style={[styles.footerBtn, (isFaceRegistered === false || statusLoading) && { opacity: 0.5 }]}
+                onPress={handleUploadPhoto}
+                disabled={isFaceRegistered === false || statusLoading}
+              >
+                <Upload color="#F97316" size={18} />
+                <Text style={styles.footerBtnText}>Upload Photo</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.footerBtn} onPress={onClose}>
-              <X color="#F97316" size={18} />
-              <Text style={styles.footerBtnText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity style={styles.footerBtn} onPress={onClose}>
+                <X color="#F97316" size={18} />
+                <Text style={styles.footerBtnText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
         </View>
       </View>

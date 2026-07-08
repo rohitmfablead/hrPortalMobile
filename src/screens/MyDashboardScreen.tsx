@@ -19,6 +19,8 @@ export default function MyDashboardScreen() {
   const navigation = useNavigation<any>();
   const [isCheckedIn, setIsCheckedIn] = React.useState(false);
   const [isCheckedOut, setIsCheckedOut] = React.useState(false);
+  const [isCheckedIn2, setIsCheckedIn2] = React.useState(false);
+  const [isCheckedOut2, setIsCheckedOut2] = React.useState(false);
   const [statusLoading, setStatusLoading] = React.useState(true);
   const [isFaceModalVisible, setIsFaceModalVisible] = React.useState(false);
   const [todayShift, setTodayShift] = React.useState<any>(null);
@@ -45,6 +47,8 @@ export default function MyDashboardScreen() {
           if (res.data?.success) {
             setIsCheckedIn(res.data.data.isCheckedIn);
             setIsCheckedOut(res.data.data.isCheckedOut);
+            setIsCheckedIn2(res.data.data.isCheckedIn2);
+            setIsCheckedOut2(res.data.data.isCheckedOut2);
             setTodayShift(res.data.data);
           }
         } catch (err) {
@@ -59,32 +63,31 @@ export default function MyDashboardScreen() {
 
   const handleAttendance = () => {
     const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    if (isCheckedIn) {
-      // Check Out - send the original checkIn time
-      const previousCheckIn = todayShift?.checkIn || '';
-      dispatch(markManualAttendance({ checkIn: previousCheckIn, checkOut: time, employeeId: user?.id }))
+    if (isCheckedIn2 && !isCheckedOut2) {
+      // Check Out 2nd time
+      const payload = { checkIn2: todayShift?.checkIn2 || '', checkOut2: time, employeeId: user?.id };
+      dispatch(markManualAttendance(payload))
         .unwrap()
         .then(() => {
-          Toast.show({
-            type: 'success',
-            text1: 'Success',
-            text2: `Checked out successfully at ${time}`
-          });
-          setIsCheckedIn(false);
-          
-          // Send notification only for employee role (admin/HR should not receive)
-          if (user?.role === 'Employee' || user?.role === 'employee') {
-            api.post('/notifications', {
-              title: 'Employee Check-Out',
-              message: `${user?.name || 'An employee'} checked out at ${time}`,
-              type: 'attendance',
-              userId: user?.id,
-            }).catch(err => console.log('Notification error', err));
-          }
+          Toast.show({ type: 'success', text1: 'Success', text2: `Checked out successfully at ${time}` });
+          setIsCheckedOut2(true);
+        })
+        .catch((err) => Toast.show({ type: 'error', text1: 'Error', text2: err?.message || err }));
+    } else if (isCheckedOut && !isCheckedIn2) {
+      // Open Face Recognition Modal for Shift 2
+      setIsFaceModalVisible(true);
+    } else if (isCheckedIn && !isCheckedOut) {
+      // Check Out 1st time
+      const payload = { checkIn: todayShift?.checkIn || '', checkOut: time, employeeId: user?.id };
+      dispatch(markManualAttendance(payload))
+        .unwrap()
+        .then(() => {
+          Toast.show({ type: 'success', text1: 'Success', text2: `Checked out successfully at ${time}` });
+          setIsCheckedOut(true);
         })
         .catch((err) => Toast.show({ type: 'error', text1: 'Error', text2: err?.message || err }));
     } else {
-      // Open Face Recognition Modal
+      // Open Face Recognition Modal for Shift 1
       setIsFaceModalVisible(true);
     }
   };
@@ -92,7 +95,11 @@ export default function MyDashboardScreen() {
   const handleFaceMatchSuccess = () => {
     setIsFaceModalVisible(false);
     const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    dispatch(markManualAttendance({ checkIn: time, employeeId: user?.id }))
+    
+    const isShift2 = isCheckedOut && !isCheckedIn2;
+    const payload = isShift2 ? { checkIn2: time, employeeId: user?.id } : { checkIn: time, employeeId: user?.id };
+
+    dispatch(markManualAttendance(payload))
       .unwrap()
       .then(() => {
         Toast.show({
@@ -100,16 +107,10 @@ export default function MyDashboardScreen() {
           text1: 'Success',
           text2: `Face matched! Checked in successfully at ${time}`
         });
-        setIsCheckedIn(true);
-        
-        // Send notification only for employee role (admin/HR should not receive)
-        if (user?.role === 'Employee' || user?.role === 'employee') {
-          api.post('/notifications', {
-            title: 'Employee Check-In',
-            message: `${user?.name || 'An employee'} checked in at ${time}`,
-            type: 'attendance',
-            userId: user?.id,
-          }).catch(err => console.log('Notification error', err));
+        if (isShift2) {
+          setIsCheckedIn2(true);
+        } else {
+          setIsCheckedIn(true);
         }
       })
       .catch((err) => Toast.show({ type: 'error', text1: 'Error', text2: err?.message || err }));
@@ -144,15 +145,15 @@ export default function MyDashboardScreen() {
             <TouchableOpacity
               style={[
                 styles.actionBtn,
-                isCheckedOut ? styles.checkOutBtn : (isCheckedIn ? styles.checkOutBtn : styles.checkInBtn),
-                { width: '100%', opacity: (isCheckedOut || statusLoading) ? 0.6 : 1 }
+                isCheckedOut2 ? styles.checkOutBtn : (!isCheckedOut ? (isCheckedIn ? styles.checkOutBtn : styles.checkInBtn) : (isCheckedIn2 ? styles.checkOutBtn : styles.checkInBtn)),
+                { width: '100%', opacity: (isCheckedOut2 || statusLoading) ? 0.6 : 1 }
               ]}
-              onPress={isCheckedOut ? undefined : handleAttendance}
-              disabled={isCheckedOut || statusLoading}
+              onPress={isCheckedOut2 ? undefined : handleAttendance}
+              disabled={isCheckedOut2 || statusLoading}
             >
-              {isCheckedOut ? <CheckCircle color="#F97316" size={20} /> : (isCheckedIn ? <LogOut color="#F97316" size={20} /> : <LogIn color="#F97316" size={20} />)}
+              {isCheckedOut2 ? <CheckCircle color="#F97316" size={20} /> : (!isCheckedOut ? (isCheckedIn ? <LogOut color="#F97316" size={20} /> : <LogIn color="#F97316" size={20} />) : (isCheckedIn2 ? <LogOut color="#F97316" size={20} /> : <LogIn color="#F97316" size={20} />))}
               <Text style={styles.actionBtnText}>
-                {statusLoading ? 'Checking...' : (isCheckedOut ? 'Shift Completed' : (isCheckedIn ? 'Check Out' : 'Check In'))}
+                {statusLoading ? 'Checking...' : (isCheckedOut2 ? 'Completed' : (!isCheckedOut ? (isCheckedIn ? 'Check Out' : 'Check In') : (isCheckedIn2 ? 'Check Out' : 'Check In')))}
               </Text>
             </TouchableOpacity>
           </View>
@@ -160,13 +161,15 @@ export default function MyDashboardScreen() {
           {todayShift?.checkIn && (
             <View style={styles.shiftInfoRow}>
               <View style={styles.shiftInfoItem}>
-                <Text style={styles.shiftInfoLabel}>Check In</Text>
-                <Text style={styles.shiftInfoValue}>{todayShift.checkIn}</Text>
+                <Text style={styles.shiftInfoLabel}>1st Log</Text>
+                <Text style={styles.shiftInfoValue}>{todayShift.checkIn} - {todayShift.checkOut || '...'}</Text>
               </View>
-              <View style={styles.shiftInfoItem}>
-                <Text style={styles.shiftInfoLabel}>Completed</Text>
-                <Text style={[styles.shiftInfoValue, { color: '#0F172A' }]}>{todayShift.hoursCompleted}</Text>
-              </View>
+              {todayShift?.checkIn2 && (
+                <View style={styles.shiftInfoItem}>
+                  <Text style={styles.shiftInfoLabel}>2nd Log</Text>
+                  <Text style={styles.shiftInfoValue}>{todayShift.checkIn2} - {todayShift.checkOut2 || '...'}</Text>
+                </View>
+              )}
               <View style={styles.shiftInfoItem}>
                 <Text style={styles.shiftInfoLabel}>Remaining</Text>
                 <Text style={[styles.shiftInfoValue, { color: '#F97316' }]}>{todayShift.hoursRemaining}</Text>
@@ -276,9 +279,10 @@ export default function MyDashboardScreen() {
             <View style={[
               styles.statusBadge,
               item.status === 'present' ? styles.badgeGreen :
-                (item.status === 'absent' || item.status === 'missing' ? styles.badgeRed : styles.badgeOrange)
+                (item.status === 'absent' || item.status === 'missing' ? styles.badgeRed : 
+                 item.status === 'wo' ? styles.badgeGray : styles.badgeOrange)
             ]}>
-              <Text style={styles.statusText}>{item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : ''}</Text>
+              <Text style={styles.statusText}>{item.status === 'wo' ? 'Weekly Off' : (item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : '')}</Text>
             </View>
           </View>
         ))
@@ -593,6 +597,7 @@ const styles = StyleSheet.create({
   badgeGreen: { backgroundColor: '#ECFDF5' },
   badgeRed: { backgroundColor: '#FEF2F2' },
   badgeOrange: { backgroundColor: '#FFFBEB' },
+  badgeGray: { backgroundColor: '#F1F5F9' },
   textGreen: { color: '#059669', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
   textRed: { color: '#DC2626', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
   textOrange: { color: '#D97706', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },

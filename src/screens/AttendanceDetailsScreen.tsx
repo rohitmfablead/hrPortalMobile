@@ -124,18 +124,22 @@ export default function AttendanceDetailsScreen({ navigation, route }: any) {
           <Text style={{ textAlign: 'center', color: '#64748B', marginTop: 40 }}>No attendance records found.</Text>
         ) : (
           history.map((item, index) => {
-            let cardStyle: any = styles.card;
-            let markerColor = '#3B82F6'; // Default Blue
+            const isAbsent = item.status === 'Absent';
+            const isWO = item.status === 'WO';
+            const isLate = item.status === 'Late';
 
-            const status = item.status?.toLowerCase();
-            const isAbsent = status === 'absent';
-            const isLate = status === 'late';
-
+            let cardStyle: any = [styles.card];
+            let markerColor = '#059669';
             let badges = [];
+
             if (isAbsent) {
-              cardStyle = [styles.card, { backgroundColor: '#FEE2E2', borderColor: '#FECACA' }];
+              cardStyle.push({ backgroundColor: '#FEE2E2', borderColor: '#FECACA' });
               markerColor = '#DC2626';
               badges.push({ text: 'Absent', type: 'solid-red' });
+            } else if (isWO) {
+              cardStyle.push({ backgroundColor: '#F8FAFC' });
+              markerColor = '#94A3B8';
+              badges.push({ text: 'Weekly Off', type: 'solid-gray' });
             } else if (isLate) {
               markerColor = '#F59E0B';
               badges.push({ text: 'Late', type: 'outline-gray' });
@@ -159,7 +163,7 @@ export default function AttendanceDetailsScreen({ navigation, route }: any) {
                   <Text style={styles.dateText}>{dateStr}</Text>
                   <View style={styles.badgesRow}>
                     {badges.map((badge, idx) => renderBadge(badge, idx))}
-                    {!isAbsent && (
+                    {!isAbsent && !isWO && (
                       <View style={styles.homeIconContainer}>
                         <Home color="#94A3B8" size={14} />
                       </View>
@@ -167,15 +171,17 @@ export default function AttendanceDetailsScreen({ navigation, route }: any) {
                   </View>
                 </View>
 
-                {/* Stats Row (Only if not absent) */}
-                {!isAbsent && (
+                {/* Stats Row (Only if not absent and not WO) */}
+                {!isAbsent && !isWO && (
                   <View style={styles.statsRow}>
                     <View style={styles.statCol}>
-                      <Text style={[styles.statValue, { color: checkInColor }]}>{item.checkIn || '-'}</Text>
+                      <Text style={[styles.statValue, { color: checkInColor }]}>{item.checkIn2 ? `1st: ${item.checkIn || '-'}` : (item.checkIn || '-')}</Text>
+                      {item.checkIn2 && <Text style={[styles.statValue, { color: checkInColor }]}>2nd: {item.checkIn2}</Text>}
                       <Text style={styles.statLabel}>Check In</Text>
                     </View>
                     <View style={styles.statCol}>
-                      <Text style={[styles.statValue, { color: checkOutColor }]}>{item.checkOut || '-'}</Text>
+                      <Text style={[styles.statValue, { color: checkOutColor }]}>{item.checkIn2 ? `1st: ${item.checkOut || '-'}` : (item.checkOut || '-')}</Text>
+                      {item.checkIn2 && <Text style={[styles.statValue, { color: checkOutColor }]}>2nd: {item.checkOut2 || '-'}</Text>}
                       <Text style={styles.statLabel}>Check Out</Text>
                     </View>
                     <View style={[styles.statCol, { alignItems: 'flex-end' }]}>

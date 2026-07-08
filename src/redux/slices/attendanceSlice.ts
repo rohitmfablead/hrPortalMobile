@@ -8,6 +8,8 @@ export interface AttendanceRecord {
   date: string;
   checkIn: string;
   checkOut: string;
+  checkIn2?: string;
+  checkOut2?: string;
   status: string;
   lateByMinutes?: number;
   totalWorkedHours?: string;
@@ -70,12 +72,14 @@ export const fetchAttendanceCalendar = createAsyncThunk(
 
 export const markManualAttendance = createAsyncThunk(
   'attendance/markManualAttendance',
-  async (data: { checkIn: string; checkOut?: string; date?: string; employeeId?: string }, { rejectWithValue }) => {
+  async (data: { checkIn?: string; checkOut?: string; checkIn2?: string; checkOut2?: string; date?: string; employeeId?: string }, { rejectWithValue }) => {
     try {
       const response = await api.post('/attendance/mark', {
         employeeId: data.employeeId,
         checkIn: data.checkIn,
         checkOut: data.checkOut,
+        checkIn2: data.checkIn2,
+        checkOut2: data.checkOut2,
         date: data.date || new Date().toISOString().split('T')[0],
       });
       return response.data.data;
@@ -87,11 +91,13 @@ export const markManualAttendance = createAsyncThunk(
 
 export const updateAttendance = createAsyncThunk(
   'attendance/updateAttendance',
-  async (data: { id: string; checkIn: string; checkOut?: string; status: string; date?: string }, { rejectWithValue }) => {
+  async (data: { id: string; checkIn: string; checkOut?: string; checkIn2?: string; checkOut2?: string; status: string; date?: string }, { rejectWithValue }) => {
     try {
       const response = await api.put(`/attendance/${data.id}`, {
         checkIn: data.checkIn,
         checkOut: data.checkOut,
+        checkIn2: data.checkIn2,
+        checkOut2: data.checkOut2,
         status: data.status,
         date: data.date,
       });
