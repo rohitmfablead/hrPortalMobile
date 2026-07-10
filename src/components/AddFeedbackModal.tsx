@@ -3,15 +3,56 @@ import { View, StyleSheet, Modal, TouchableOpacity, Text,  Platform, KeyboardAvo
 import CustomTextInput from './CustomTextInput';
 import { X, MessageSquare, AlignLeft } from 'lucide-react-native';
 
-export default function AddFeedbackModal({ visible, onClose, onSave }: any) {
-  const [subject, setSubject] = useState('');
-  const [details, setDetails] = useState('');
-  const [type, setType] = useState('Suggestion');
+export default function AddFeedbackModal({ visible, onClose, onSave, defaultType = 'Feedback' }: any) {
+  // Common
+  const [subject, setSubject] = useState(''); // also acts as title for feedback
+  const [details, setDetails] = useState(''); // also acts as suggestion/description
+
+  // Feedback specific
+  const [category, setCategory] = useState('Benefits');
+  const [rating, setRating] = useState('5');
+
+  // Complaint specific
+  const [complaintType, setComplaintType] = useState('Harassment');
+  const [priority, setPriority] = useState('High');
+  const [reportedAgainst, setReportedAgainst] = useState('');
+
+  React.useEffect(() => {
+    if (visible) {
+      setSubject('');
+      setDetails('');
+      setCategory('Benefits');
+      setRating('5');
+      setComplaintType('Harassment');
+      setPriority('High');
+      setReportedAgainst('');
+    }
+  }, [visible, defaultType]);
 
   const handleSave = () => {
-    onSave(subject, details, type);
+    if (defaultType === 'Complaint') {
+      onSave({
+        subject,
+        description: details,
+        type: complaintType,
+        priority,
+        reportedAgainst,
+        isAnonymous: false,
+        reportedBy: 'Self'
+      });
+    } else {
+      onSave({
+        title: subject,
+        suggestion: details,
+        category: category,
+        rating: parseInt(rating) || 5,
+        submittedBy: 'Self'
+      });
+    }
     onClose();
   };
+
+  const isComplaint = defaultType === 'Complaint';
 
   return (
     <Modal visible={visible} transparent={true} animationType="slide" onRequestClose={onClose}>
@@ -19,28 +60,60 @@ export default function AddFeedbackModal({ visible, onClose, onSave }: any) {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalContainer}>
           <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>Submit Feedback</Text>
+              <Text style={styles.headerTitle}>
+                {isComplaint ? 'Submit Complaint' : 'Submit Feedback'}
+              </Text>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
                 <X color="#F97316" size={24} />
               </TouchableOpacity>
             </View>
 
+            {isComplaint ? (
+              <>
+                <CustomTextInput
+                  label="Complaint Type"
+                  value={complaintType} onChangeText={setComplaintType} placeholder="e.g. Harassment, Facilities"
+                  left={<CustomTextInput.Icon icon={() => <MessageSquare color="#F97316" size={18} />} />}
+                />
+                <CustomTextInput
+                  label="Reported Against (Optional)"
+                  value={reportedAgainst} onChangeText={setReportedAgainst} placeholder="e.g. John Doe, IT Dept"
+                />
+                <CustomTextInput
+                  label="Priority"
+                  value={priority} onChangeText={setPriority} placeholder="e.g. High, Medium, Low"
+                />
+              </>
+            ) : (
+              <>
+                <CustomTextInput
+                  label="Category"
+                  value={category} onChangeText={setCategory} placeholder="e.g. Benefits, Work Environment"
+                  left={<CustomTextInput.Icon icon={() => <MessageSquare color="#F97316" size={18} />} />}
+                />
+                <CustomTextInput
+                  label="Rating (1-5)"
+                  value={rating} onChangeText={setRating} placeholder="5" keyboardType="numeric"
+                />
+              </>
+            )}
+
             <CustomTextInput
-              label="Type"
-              value={subject} onChangeText={setSubject} placeholder="e.g. New Coffee Machine"
+              label={isComplaint ? "Subject" : "Title"}
+              value={subject} onChangeText={setSubject} placeholder={isComplaint ? "e.g. AC not working" : "e.g. New Coffee Machine"}
               left={<CustomTextInput.Icon icon={() => <MessageSquare color="#F97316" size={18} />} />}
-              
             />
 
             <CustomTextInput
-              label="Details"
+              label={isComplaint ? "Description" : "Suggestion"}
                value={details} onChangeText={setDetails} placeholder="Share your thoughts..." multiline
               left={<CustomTextInput.Icon icon={() => <AlignLeft color="#F97316" size={18} />} />}
-              
             />
 
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-              <Text style={styles.saveBtnText}>Submit Feedback</Text>
+              <Text style={styles.saveBtnText}>
+                {isComplaint ? 'Submit Complaint' : 'Submit Feedback'}
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>

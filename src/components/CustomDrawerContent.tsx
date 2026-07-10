@@ -56,10 +56,10 @@ export default function CustomDrawerContent(props: any) {
               let targetDrawerRouteName = 'Main';
 
               if (activeTabRoute.name === 'EmployeeTab') targetDrawerRouteName = 'Employees';
-              else if (activeTabRoute.name === 'AttendanceTab') targetDrawerRouteName = 'Attendance';
-              else if (activeTabRoute.name === 'LeaveTab') targetDrawerRouteName = 'Leaves';
+              else if (activeTabRoute.name === 'AttendanceTab') targetDrawerRouteName = isAdminOrHR ? 'Attendance' : 'My Attendance';
+              else if (activeTabRoute.name === 'LeaveTab') targetDrawerRouteName = isAdminOrHR ? 'Leaves' : 'My Leaves';
               else if (activeTabRoute.name === 'SettingsTab') targetDrawerRouteName = 'Settings';
-              else if (activeTabRoute.name === 'ProfileTab') targetDrawerRouteName = 'Profile';
+              else if (activeTabRoute.name === 'ProfileTab') targetDrawerRouteName = isAdminOrHR ? 'Profile' : 'My Profile';
 
               const targetIndex = lowerState.routes.findIndex((r: any) => r.name === targetDrawerRouteName);
               if (targetIndex !== -1) {

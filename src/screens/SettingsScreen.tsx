@@ -1,12 +1,15 @@
 import CustomTextInput from '../components/CustomTextInput';
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
-import { Card, Title, Switch, List, Text, Button, Avatar} from 'react-native-paper';
+import { View, StyleSheet, FlatList, ScrollView, TouchableOpacity, useWindowDimensions, Animated } from 'react-native';
+import { Card, Title, Switch, Text, Button, Avatar} from 'react-native-paper';
 import { mockSettings } from '../mockData/mockData';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store';
-import { Lock, User as UserIcon, Shield } from 'lucide-react-native';
+import { Lock, User as UserIcon, Shield, Camera, Trash2 } from 'lucide-react-native';
 import api from '../services/api';
+import Toast from 'react-native-toast-message';
+import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function SettingsScreen() {
   const { user } = useSelector((state: RootState) => state.auth);
@@ -23,16 +26,75 @@ export default function SettingsScreen() {
 
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [phone, setPhone] = useState('+1 (555) 123-4567');
+  const [phone, setPhone] = useState(user?.phone || '+1 (555) 123-4567');
+  const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setAvatarUri(result.assets[0].uri);
+    }
+  };
 
   const handleSaveProfile = async () => {
     try {
       setLoading(true);
-      await api.put('/employees/me', { name, email, phone });
-      alert('Profile updated successfully! Refresh to see changes.');
+      
+      let payload: any = { name, email, phone };
+      let config = {};
+
+      if (avatarUri) {
+        payload = new FormData();
+        payload.append('name', name);
+        payload.append('email', email);
+        payload.append('phone', phone);
+        
+        const imageResponse = await fetch(avatarUri);
+        const blob = await imageResponse.blob();
+        
+        let filename = avatarUri.split('/').pop() || 'avatar.jpg';
+        if (!filename.includes('.')) {
+          const ext = blob.type.split('/')[1] || 'jpg';
+          filename = `avatar.${ext}`;
+        }
+        
+        payload.append('avatar', blob, filename);
+        
+        const token = await require('@react-native-async-storage/async-storage').default.getItem('token');
+        const response = await fetch('http://localhost:5000/api/employees/me', {
+          method: 'PUT',
+          body: payload,
+          headers: {
+            'Authorization': `Bearer ${token}`
+            // Note: Don't set Content-Type manually with fetch so boundary gets generated
+          },
+        });
+        
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || 'Upload failed');
+        }
+      } else {
+        await api.put('/employees/me', payload);
+      }
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Profile updated successfully!',
+      });
     } catch (error: any) {
-      alert('Failed to update profile: ' + (error.response?.data?.message || error.message));
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to update profile: ' + (error.response?.data?.message || error.message),
+      });
     } finally {
       setLoading(false);
     }
@@ -41,9 +103,8 @@ export default function SettingsScreen() {
   if (!isAdminOrHr) {
     return (
       <View style={styles.container}>
-        <Title style={styles.screenTitle}>Settings</Title>
-        <Text style={styles.subtitle}>Manage your application settings.</Text>
         <FlatList
+          contentContainerStyle={styles.listContent}
           data={settings}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -51,7 +112,7 @@ export default function SettingsScreen() {
               <View style={styles.settingContent}>
                 <Text style={styles.settingTitle}>{item.name}</Text>
                 {item.type === 'toggle' ? (
-                  <Switch value={item.value as boolean} onValueChange={() => toggleSetting(item.id)} color="#3B82F6" />
+                  <Switch value={item.value as boolean} onValueChange={() => toggleSetting(item.id)} color="#F97316" />
                 ) : null}
               </View>
             </View>
@@ -63,124 +124,245 @@ export default function SettingsScreen() {
 
   // Admin and HR View
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-      <Title style={styles.screenTitle}>Settings</Title>
-      <Text style={styles.subtitle}>Manage your account preferences and application settings.</Text>
-
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'Profile' && styles.activeTab]}
-          onPress={() => setActiveTab('Profile')}
-        >
-          <UserIcon color={activeTab === 'Profile' ? '#3B82F6' : '#64748B'} size={16} />
-          <Text style={[styles.tabText, activeTab === 'Profile' && styles.activeTabText]}>Profile</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'Security' && styles.activeTab]}
-          onPress={() => setActiveTab('Security')}
-        >
-          <Lock color={activeTab === 'Security' ? '#3B82F6' : '#64748B'} size={16} />
-          <Text style={[styles.tabText, activeTab === 'Security' && styles.activeTabText]}>Security & Password</Text>
-        </TouchableOpacity>
-
-      </View>
-
-      <Card style={styles.mainCard}>
-        {activeTab === 'Profile' && (
-          <View style={styles.cardPadding}>
-            <View style={styles.sectionHeader}>
-              <UserIcon color="#3B82F6" size={20} />
-              <Text style={styles.sectionTitle}>Personal Information</Text>
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.floatingProfileCard}>
+          <TouchableOpacity style={styles.avatarWrapper} onPress={pickImage}>
+            {avatarUri || user?.avatar || user?.profilePicture?.url ? (
+              <Avatar.Image size={72} source={{ uri: avatarUri || user?.avatar || user?.profilePicture?.url }} style={styles.avatar} />
+            ) : (
+              <Avatar.Text size={72} label={user?.name ? user.name.substring(0, 2).toUpperCase() : 'AU'} style={styles.avatar} color="#FFF" />
+            )}
+            <View style={styles.cameraIcon}>
+              <Camera size={16} color="#FFF" />
             </View>
+          </TouchableOpacity>
+          <Text style={styles.profileName}>{user?.name || 'Admin User'}</Text>
+          <Text style={styles.profileRole}>{user?.role || 'Admin'}</Text>
+          <TouchableOpacity style={styles.removeAvatarBtn} onPress={() => setAvatarUri(null)}>
+            <Trash2 size={14} color="#EF4444" />
+            <Text style={styles.removeAvatarText}>Remove Avatar</Text>
+          </TouchableOpacity>
+        </View>
 
-            <View style={styles.avatarSection}>
-              <Avatar.Text size={64} label={user?.name ? user.name.substring(0, 2).toUpperCase() : 'AU'} style={styles.avatar} color="#FFF" />
-              <View style={styles.avatarTextContainer}>
-                <Text style={styles.avatarName}>{user?.name || 'Admin User'}</Text>
-                <Text style={styles.avatarRole}>{user?.role || 'Admin'}</Text>
-                <View style={styles.avatarActions}>
-                  <Button mode="contained" textColor="#FFF" style={styles.avatarBtn} labelStyle={styles.btnLabel}>Change Avatar</Button>
-                  <Button mode="outlined" textColor="#EF4444" style={styles.removeBtn} labelStyle={styles.btnLabel}>Remove</Button>
+        <View style={styles.tabsWrapper}>
+          <TouchableOpacity
+            style={[styles.premiumTab, activeTab === 'Profile' && styles.premiumTabActive]}
+            onPress={() => setActiveTab('Profile')}
+            activeOpacity={0.8}
+          >
+            <UserIcon color={activeTab === 'Profile' ? '#FFF' : '#64748B'} size={18} />
+            <Text style={[styles.premiumTabText, activeTab === 'Profile' && styles.premiumTabTextActive]}>Profile</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.premiumTab, activeTab === 'Security' && styles.premiumTabActive]}
+            onPress={() => setActiveTab('Security')}
+            activeOpacity={0.8}
+          >
+            <Lock color={activeTab === 'Security' ? '#FFF' : '#64748B'} size={18} />
+            <Text style={[styles.premiumTabText, activeTab === 'Security' && styles.premiumTabTextActive]}>Security</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.contentSection}>
+          {activeTab === 'Profile' && (
+            <View>
+              <Text style={styles.sectionHeaderTitle}>Personal Information</Text>
+
+              <View style={[styles.formRow, isMobile && styles.formRowMobile]}>
+                <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
+                  <Text style={styles.inputLabel}>Full Name</Text>
+                  <CustomTextInput value={name} onChangeText={setName} style={styles.input} outlineColor="#E2E8F0" activeOutlineColor="#F97316" left={<CustomTextInput.Icon icon={() => <UserIcon size={18} color="#94A3B8" />} />} />
+                </View>
+                <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
+                  <Text style={styles.inputLabel}>Job Title</Text>
+                  <CustomTextInput value={user?.role || 'Admin'} disabled style={styles.input} outlineColor="#E2E8F0" activeOutlineColor="#F97316" left={<CustomTextInput.Icon icon={() => <Shield size={18} color="#94A3B8" />} />} />
                 </View>
               </View>
-            </View>
 
-            <View style={[styles.formRow, isMobile && styles.formRowMobile]}>
-              <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
-                <Text style={styles.inputLabel}>Full Name</Text>
-                <CustomTextInput value={name} onChangeText={setName} style={styles.input} outlineColor="#E2E8F0" activeOutlineColor="#3B82F6" left={<CustomTextInput.Icon icon={() => <UserIcon size={18} color="#94A3B8" />} />} />
+              <View style={[styles.formRow, isMobile && styles.formRowMobile]}>
+                <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
+                  <Text style={styles.inputLabel}>Email Address</Text>
+                  <CustomTextInput value={email} disabled style={styles.input} outlineColor="#E2E8F0" activeOutlineColor="#F97316" left={<CustomTextInput.Icon icon="email-outline" color="#94A3B8" />} />
+                </View>
+                <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
+                  <Text style={styles.inputLabel}>Phone Number</Text>
+                  <CustomTextInput value={phone} onChangeText={setPhone} style={styles.input} outlineColor="#E2E8F0" activeOutlineColor="#F97316" left={<CustomTextInput.Icon icon="phone-outline" color="#94A3B8" />} />
+                </View>
               </View>
-              <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
-                <Text style={styles.inputLabel}>Job Title</Text>
-                <CustomTextInput value={user?.role || 'Admin'} disabled style={styles.input} outlineColor="#E2E8F0" activeOutlineColor="#3B82F6" left={<CustomTextInput.Icon icon={() => <Shield size={18} color="#94A3B8" />} />} />
-              </View>
+
+              <TouchableOpacity style={styles.primaryGradientBtn} onPress={handleSaveProfile} disabled={loading}>
+                <LinearGradient colors={['#F97316', '#EA580C']} style={styles.btnGradient}>
+                  <Text style={styles.btnGradientText}>{loading ? 'Saving...' : 'Save Changes'}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
+          )}
 
-            <View style={[styles.formRow, isMobile && styles.formRowMobile]}>
-              <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
-                <Text style={styles.inputLabel}>Email Address</Text>
-                <CustomTextInput value={email} onChangeText={setEmail} style={styles.input} outlineColor="#E2E8F0" activeOutlineColor="#3B82F6" left={<CustomTextInput.Icon icon="email-outline" color="#94A3B8" />} />
+          {activeTab === 'Security' && (
+            <View>
+              <Text style={styles.sectionHeaderTitle}>Password & Security</Text>
+
+              <View style={styles.formRowSingle}>
+                <Text style={styles.inputLabel}>Current Password</Text>
+                <CustomTextInput value="........" secureTextEntry style={[styles.inputSingle, isMobile && styles.inputContainerMobile]} outlineColor="#E2E8F0" activeOutlineColor="#F97316" left={<CustomTextInput.Icon icon={() => <Lock size={18} color="#94A3B8" />} />} />
               </View>
-              <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
-                <Text style={styles.inputLabel}>Phone Number</Text>
-                <CustomTextInput value={phone} onChangeText={setPhone} style={styles.input} outlineColor="#E2E8F0" activeOutlineColor="#3B82F6" left={<CustomTextInput.Icon icon="phone-outline" color="#94A3B8" />} />
+
+              <View style={[styles.formRow, isMobile && styles.formRowMobile]}>
+                <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
+                  <Text style={styles.inputLabel}>New Password</Text>
+                  <CustomTextInput placeholder="New password" secureTextEntry style={styles.input} outlineColor="#E2E8F0" activeOutlineColor="#F97316" left={<CustomTextInput.Icon icon={() => <Lock size={18} color="#94A3B8" />} />} />
+                </View>
+                <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
+                  <Text style={styles.inputLabel}>Confirm New Password</Text>
+                  <CustomTextInput placeholder="Confirm password" secureTextEntry style={styles.input} outlineColor="#E2E8F0" activeOutlineColor="#F97316" left={<CustomTextInput.Icon icon={() => <Lock size={18} color="#94A3B8" />} />} />
+                </View>
               </View>
+
+              <TouchableOpacity style={styles.primaryGradientBtn}>
+                <LinearGradient colors={['#F97316', '#EA580C']} style={styles.btnGradient}>
+                  <Text style={styles.btnGradientText}>Update Password</Text>
+                </LinearGradient>
+              </TouchableOpacity>
             </View>
-
-            <Button mode="contained" style={styles.saveBtn} onPress={handleSaveProfile} loading={loading}>Save Changes</Button>
-          </View>
-        )}
-
-        {activeTab === 'Security' && (
-          <View style={styles.cardPadding}>
-            <View style={styles.sectionHeader}>
-              <Lock color="#3B82F6" size={20} />
-              <Text style={styles.sectionTitle}>Password & Security</Text>
-            </View>
-
-            <View style={styles.formRowSingle}>
-              <Text style={styles.inputLabel}>Current Password</Text>
-              <CustomTextInput value="........" secureTextEntry style={[styles.inputSingle, isMobile && styles.inputContainerMobile]} outlineColor="#E2E8F0" activeOutlineColor="#3B82F6" left={<CustomTextInput.Icon icon={() => <Lock size={18} color="#94A3B8" />} />} />
-            </View>
-
-            <View style={[styles.formRow, isMobile && styles.formRowMobile]}>
-              <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
-                <Text style={styles.inputLabel}>New Password</Text>
-                <CustomTextInput placeholder="New password" secureTextEntry style={styles.input} outlineColor="#E2E8F0" activeOutlineColor="#3B82F6" left={<CustomTextInput.Icon icon={() => <Lock size={18} color="#94A3B8" />} />} />
-              </View>
-              <View style={[styles.inputContainer, isMobile && styles.inputContainerMobile]}>
-                <Text style={styles.inputLabel}>Confirm New Password</Text>
-                <CustomTextInput placeholder="Confirm password" secureTextEntry style={styles.input} outlineColor="#E2E8F0" activeOutlineColor="#3B82F6" left={<CustomTextInput.Icon icon={() => <Lock size={18} color="#94A3B8" />} />} />
-              </View>
-            </View>
-
-            <Button mode="contained" style={styles.updatePasswordBtn}>Update Password</Button>
-          </View>
-        )}
-
-
-      </Card>
-    </ScrollView>
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  scrollContent: { padding: 16, paddingBottom: 40 },
-  screenTitle: { color: '#0F172A', fontSize: 28, fontWeight: 'bold' },
-  subtitle: { color: '#64748B', fontSize: 14, marginBottom: 24, marginTop: -4 },
+  container: { flex: 1, backgroundColor: '#F8FAFC', paddingTop: 16 },
+  screenTitle: { color: '#0F172A', fontSize: 28, fontWeight: 'bold', paddingHorizontal: 20 },
+  subtitle: { color: '#64748B', fontSize: 14, marginBottom: 24, marginTop: -4, paddingHorizontal: 20 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 60 },
+  listContent: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 60 },
+  floatingProfileCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 4,
+    marginBottom: 24,
+  },
+  avatarWrapper: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatar: { backgroundColor: '#F97316' },
+  cameraIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: -4,
+    backgroundColor: '#1E293B',
+    padding: 6,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  profileName: { fontSize: 22, fontWeight: '800', color: '#0F172A', marginBottom: 4 },
+  profileRole: { fontSize: 14, color: '#64748B', fontWeight: '500', marginBottom: 16 },
+  removeAvatarBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 6,
+  },
+  removeAvatarText: { color: '#EF4444', fontWeight: '600', fontSize: 13 },
+  tabsWrapper: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    padding: 6,
+    borderRadius: 100,
+    marginBottom: 24,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  premiumTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 100,
+    gap: 8,
+  },
+  premiumTabActive: {
+    backgroundColor: '#F97316',
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  premiumTabText: { color: '#64748B', fontWeight: '600', fontSize: 14 },
+  premiumTabTextActive: { color: '#FFFFFF' },
+  contentSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 2,
+  },
+  sectionHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 24,
+  },
+  formRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  formRowMobile: { flexDirection: 'column', gap: 20 },
+  formRowSingle: { marginBottom: 20 },
+  inputContainer: { width: '48%' },
+  inputContainerMobile: { width: '100%' },
+  inputLabel: { fontSize: 13, fontWeight: '700', color: '#475569', marginBottom: 8 },
+  input: { backgroundColor: '#F8FAFC', height: 52, fontSize: 15, borderRadius: 12 },
+  inputSingle: { backgroundColor: '#F8FAFC', height: 52, fontSize: 15, width: '48%', borderRadius: 12 },
+  primaryGradientBtn: {
+    marginTop: 12,
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  btnGradient: {
+    paddingVertical: 16,
+    borderRadius: 100,
+    alignItems: 'center',
+  },
+  btnGradientText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   modernCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    padding: 16,
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 1,
+    padding: 20,
   },
   settingContent: {
     flexDirection: 'row',
@@ -192,32 +374,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  tabsContainer: { flexDirection: 'row', marginBottom: 20 },
-  tab: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20, marginRight: 8, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0' },
-  activeTab: { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' },
-  tabText: { marginLeft: 8, color: '#64748B', fontWeight: '500' },
-  activeTabText: { color: '#3B82F6', fontWeight: '600' },
-  mainCard: { backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', elevation: 0 },
-  cardPadding: { padding: 20 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: '600', color: '#0F172A', marginLeft: 8 },
-  avatarSection: { flexDirection: 'row', alignItems: 'center', padding: 20, backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 24, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 3, elevation: 1 },
-  avatar: { backgroundColor: '#3B82F6' },
-  avatarTextContainer: { marginLeft: 16 },
-  avatarName: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
-  avatarRole: { fontSize: 14, color: '#64748B', marginBottom: 10 },
-  avatarActions: { flexDirection: 'row', gap: 8 },
-  avatarBtn: { borderRadius: 8, backgroundColor: '#3B82F6' },
-  removeBtn: { borderRadius: 8, borderColor: '#EF4444' },
-  btnLabel: { fontSize: 12, fontWeight: '600' },
-  formRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  formRowMobile: { flexDirection: 'column', gap: 16 },
-  formRowSingle: { marginBottom: 16 },
-  inputContainer: { width: '48%' },
-  inputContainerMobile: { width: '100%' },
-  inputLabel: { fontSize: 13, fontWeight: '600', color: '#475569', marginBottom: 8 },
-  input: { backgroundColor: '#F8FAFC', height: 48, fontSize: 14, borderRadius: 8 },
-  inputSingle: { backgroundColor: '#F8FAFC', height: 48, fontSize: 14, width: '48%', borderRadius: 8 },
-  saveBtn: { alignSelf: 'flex-end', marginTop: 16, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 4, backgroundColor: '#3B82F6' },
-  updatePasswordBtn: { alignSelf: 'flex-start', marginTop: 16, borderRadius: 8, paddingHorizontal: 16, paddingVertical: 4, backgroundColor: '#3B82F6' }
 });

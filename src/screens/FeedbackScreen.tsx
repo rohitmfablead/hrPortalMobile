@@ -14,13 +14,23 @@ export default function FeedbackScreen() {
   const [isModalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const fetchFeedback = async () => {
+  const [activeTab, setActiveTab] = useState<'Feedback' | 'Complaint'>('Feedback');
+
+  const fetchItems = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/feedback');
-      setLocalFeedback(res.data.data?.feedbacks || []);
+      if (activeTab === 'Feedback') {
+        const res = await api.get('/feedback');
+        const data = res.data.data?.feedbacks || res.data || [];
+        setLocalFeedback(Array.isArray(data) ? data : []);
+      } else {
+        const res = await api.get('/complaints');
+        const data = res.data.data?.complaints || res.data || [];
+        setLocalFeedback(Array.isArray(data) ? data : []);
+      }
     } catch (error: any) {
-      console.log('Error fetching feedback:', error);
+      console.log('Error fetching items:', error);
+      setLocalFeedback([]);
     } finally {
       setLoading(false);
     }
@@ -28,32 +38,56 @@ export default function FeedbackScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchFeedback();
-      const subscription = DeviceEventEmitter.addListener('onAddAction', () => setModalVisible(true));
-      return () => subscription.remove();
-    }, [])
+      fetchItems();
+    }, [activeTab])
   );
 
-  const handleAddFeedback = async (subject: string, details: string, type: string) => {
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('onAddAction', () => setModalVisible(true));
+    return () => subscription.remove();
+  }, []);
+
+  const handleAddSubmit = async (payload: any) => {
     try {
-      await api.post('/feedback', { subject, details, type });
-      fetchFeedback();
+      if (activeTab === 'Feedback') {
+        await api.post('/feedback', payload);
+      } else {
+        await api.post('/complaints', payload);
+      }
+      fetchItems();
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to submit feedback');
+      Alert.alert('Error', error.response?.data?.message || `Failed to submit ${activeTab.toLowerCase()}`);
     }
   };
 
   return (
     <View style={styles.container}>
+      <View style={styles.tabContainer}>
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'Feedback' && styles.activeTab]} 
+          onPress={() => setActiveTab('Feedback')}
+        >
+          <Text style={[styles.tabText, activeTab === 'Feedback' && styles.activeTabText]}>Feedback</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.tabButton, activeTab === 'Complaint' && styles.activeTab]} 
+          onPress={() => setActiveTab('Complaint')}
+        >
+          <Text style={[styles.tabText, activeTab === 'Complaint' && styles.activeTabText]}>Complaint</Text>
+        </TouchableOpacity>
+      </View>
+
       {loading ? (
         <ActivityIndicator size="large" color="#3B82F6" style={{ marginTop: 20 }} />
       ) : (
         <FlatList
         data={localFeedback}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => item._id || item.id || index.toString()}
         renderItem={({ item }) => {
-          const isComplaint = item.type === 'Complaint';
-          const isPraise = item.type === 'Praise';
+          const isComplaintTab = activeTab === 'Complaint';
+          const displayTitle = isComplaintTab ? item.subject : item.title;
+          const displayDetails = isComplaintTab ? item.description : item.suggestion;
+          const displayType = isComplaintTab ? item.type : item.category;
           
           return (
             <View style={styles.modernCard}>
@@ -62,19 +96,25 @@ export default function FeedbackScreen() {
               </View>
               <View style={styles.cardContent}>
                 <View style={styles.cardHeader}>
-                  <Text style={styles.title}>{item.subject}</Text>
-                  <View style={[styles.statusBadge, isComplaint ? styles.badgeRed : (isPraise ? styles.badgeGreen : styles.badgeOrange)]}>
-                    <Text style={[styles.statusText, isComplaint ? styles.textRed : (isPraise ? styles.textGreen : styles.textOrange)]}>{item.type}</Text>
+                  <Text style={styles.title}>{displayTitle}</Text>
+                  <View style={[styles.statusBadge, isComplaintTab ? styles.badgeRed : styles.badgeGreen]}>
+                    <Text style={[styles.statusText, isComplaintTab ? styles.textRed : styles.textGreen]}>{displayType}</Text>
                   </View>
                 </View>
-                <Text style={styles.message}>{item.details}</Text>
+                <Text style={styles.message}>{displayDetails}</Text>
+                {isComplaintTab && item.priority && (
+                  <Text style={[styles.message, { marginTop: 4, fontWeight: 'bold' }]}>Priority: {item.priority}</Text>
+                )}
+                {!isComplaintTab && item.rating && (
+                  <Text style={[styles.message, { marginTop: 4, fontWeight: 'bold' }]}>Rating: {item.rating}/5</Text>
+                )}
               </View>
             </View>
           );
         }}
         ListEmptyComponent={
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 60 }}>
-            <Text style={{ color: '#64748B', fontSize: 16, fontWeight: '500' }}>No feedback available</Text>
+            <Text style={{ color: '#64748B', fontSize: 16, fontWeight: '500' }}>No {activeTab.toLowerCase()} available</Text>
           </View>
         }
       />
@@ -82,7 +122,8 @@ export default function FeedbackScreen() {
       <AddFeedbackModal 
         visible={isModalVisible} 
         onClose={() => setModalVisible(false)} 
-        onSave={handleAddFeedback} 
+        onSave={handleAddSubmit} 
+        defaultType={activeTab}
       />
     </View>
   );
@@ -145,4 +186,33 @@ const styles = StyleSheet.create({
   textGreen: { color: '#059669', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
   textRed: { color: '#DC2626', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
   textOrange: { color: '#D97706', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+  tabContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 8,
+    padding: 4,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  activeTab: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  activeTabText: {
+    color: '#0F172A',
+  },
 });

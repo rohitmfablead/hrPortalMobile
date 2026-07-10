@@ -10,6 +10,7 @@ import { AppDispatch, RootState } from '../redux/store';
 import { hydrateAuth, fetchMe } from '../redux/slices/authSlice';
 import CustomDrawerContent from '../components/CustomDrawerContent';
 import CustomHeader from '../components/CustomHeader';
+import GlobalSocketListener from '../components/GlobalSocketListener';
 
 // Screens
 import SplashScreen from '../screens/SplashScreen';
@@ -41,12 +42,15 @@ import EmployeeDetailsScreen from '../screens/EmployeeDetailsScreen';
 import AddEditEmployeeScreen from '../screens/AddEditEmployeeScreen';
 import AttendanceDetailsScreen from '../screens/AttendanceDetailsScreen';
 import EditProfileScreen from '../screens/EditProfileScreen';
+import TasksScreen from '../screens/TasksScreen';
+import ChatListScreen from '../screens/ChatListScreen';
+import ChatRoomScreen from '../screens/ChatRoomScreen';
 
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { 
   Home, User, Settings as SettingsIcon, Calendar, Users, LayoutList,
   Banknote, TrendingUp, UserPlus, Megaphone, MessageSquare, 
-  Palmtree, BookOpen, Bell, FileText, Briefcase, FileSignature
+  Palmtree, BookOpen, Bell, FileText, Briefcase, FileSignature, ListTodo
 } from 'lucide-react-native';
 
 const Drawer = createDrawerNavigator();
@@ -97,7 +101,7 @@ function MainTabs() {
         headerShown: false,
         tabBarStyle: { backgroundColor: '#FFFFFF', borderTopColor: '#E2E8F0' },
         tabBarActiveTintColor: '#F97316',
-        tabBarInactiveTintcolor: '#0F172A',
+        tabBarInactiveTintColor: '#0F172A',
       }}
     >
       <Tab.Screen
@@ -181,6 +185,7 @@ function MainDrawer() {
           <Drawer.Screen name="Employees" component={EmployeesScreen} options={{ drawerIcon: ({ color, size }) => <Users color={color} size={size} /> }} listeners={({ navigation }) => ({ drawerItemPress: (e) => { e.preventDefault(); navigation.navigate('Main', { screen: 'EmployeeTab' }); } })} />
           <Drawer.Screen name="Attendance" component={AttendanceScreen} options={{ drawerIcon: ({ color, size }) => <Calendar color={color} size={size} /> }} listeners={({ navigation }) => ({ drawerItemPress: (e) => { e.preventDefault(); navigation.navigate('Main', { screen: 'AttendanceTab' }); } })} />
           <Drawer.Screen name="Leaves" component={LeavesScreen} options={{ drawerIcon: ({ color, size }) => <LayoutList color={color} size={size} /> }} listeners={({ navigation }) => ({ drawerItemPress: (e) => { e.preventDefault(); navigation.navigate('Main', { screen: 'LeaveTab' }); } })} />
+          <Drawer.Screen name="Tasks" component={TasksScreen} options={{ drawerIcon: ({ color, size }) => <ListTodo color={color} size={size} /> }} />
           <Drawer.Screen name="Settings" component={SettingsScreen} options={{ drawerIcon: ({ color, size }) => <SettingsIcon color={color} size={size} /> }} listeners={({ navigation }) => ({ drawerItemPress: (e) => { e.preventDefault(); navigation.navigate('Main', { screen: 'SettingsTab' }); } })} />
           <Drawer.Screen name="Profile" component={ProfileScreen} options={{ drawerItemStyle: { display: 'none' } }} />
           <Drawer.Screen name="Payroll" component={PayrollScreen} options={{ drawerIcon: ({ color, size }) => <Banknote color={color} size={size} /> }} />
@@ -194,12 +199,15 @@ function MainDrawer() {
         <>
           <Drawer.Screen name="My Attendance" component={MyAttendanceScreen} options={{ title: 'Attendance', drawerIcon: ({ color, size }) => <Calendar color={color} size={size} /> }} listeners={({ navigation }) => ({ drawerItemPress: (e) => { e.preventDefault(); navigation.navigate('Main', { screen: 'AttendanceTab' }); } })} />
           <Drawer.Screen name="My Leaves" component={MyLeavesScreen} options={{ title: 'Leaves', drawerIcon: ({ color, size }) => <LayoutList color={color} size={size} /> }} listeners={({ navigation }) => ({ drawerItemPress: (e) => { e.preventDefault(); navigation.navigate('Main', { screen: 'LeaveTab' }); } })} />
+          <Drawer.Screen name="My Tasks" component={TasksScreen} options={{ title: 'Tasks', drawerIcon: ({ color, size }) => <ListTodo color={color} size={size} /> }} />
           <Drawer.Screen name="My Profile" component={MyProfileScreen} options={{ title: 'Profile', drawerIcon: ({ color, size }) => <User color={color} size={size} /> }} listeners={({ navigation }) => ({ drawerItemPress: (e) => { e.preventDefault(); navigation.navigate('Main', { screen: 'ProfileTab' }); } })} />
           <Drawer.Screen name="My Payslip" component={MyPayslipScreen} options={{ title: 'Payslip', drawerIcon: ({ color, size }) => <FileText color={color} size={size} /> }} />
+          <Drawer.Screen name="My Performances" component={PerformancesScreen} options={{ title: 'Performances', drawerIcon: ({ color, size }) => <TrendingUp color={color} size={size} /> }} />
         </>
       )}
 
       {/* Common Screens for all roles */}
+      <Drawer.Screen name="ChatList" component={ChatListScreen} options={{ title: 'Messages', drawerIcon: ({ color, size }) => <MessageSquare color={color} size={size} /> }} />
       <Drawer.Screen name="Announcements" component={AnnouncementsScreen} options={{ drawerIcon: ({ color, size }) => <Megaphone color={color} size={size} /> }} />
       <Drawer.Screen name="Feedback" component={FeedbackScreen} options={{ drawerIcon: ({ color, size }) => <MessageSquare color={color} size={size} /> }} />
       <Drawer.Screen name="Holidays" component={HolidaysScreen} options={{ drawerItemStyle: { display: 'none' } }} />
@@ -232,9 +240,11 @@ export default function AppNavigator() {
         <Stack.Screen name="AttendanceDetails" component={AttendanceDetailsScreen} options={{ headerShown: true, header: (props) => <CustomHeader {...props} showBackButton={true} />, title: 'Attendance Details' }} />
         <Stack.Screen name="LeaveDetails" component={LeaveDetailsScreen} options={{ headerShown: true, header: (props) => <CustomHeader {...props} showBackButton={true} />, title: 'Leave Details' }} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="ChatRoom" component={ChatRoomScreen} options={{ headerShown: false }} />
         
         <Stack.Screen name="Login" component={LoginScreen} />
       </Stack.Navigator>
+      <GlobalSocketListener />
       <Toast />
     </NavigationContainer>
   );

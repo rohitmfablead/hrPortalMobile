@@ -33,7 +33,7 @@ export default function CustomHeader({ navigation, options, route, showBackButto
   const adminOnlyAddScreens = [
     'Employee', 'Holidays', 'Leave', 'Announcements', 'Payslip', 
     'Attendance', 'Performances', 'Departments', 'Rules', 
-    'Designations', 'LeaveTypes'
+    'Designations', 'LeaveTypes', 'Tasks'
   ];
   
   const allRolesAddScreens = [

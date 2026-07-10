@@ -137,7 +137,7 @@ export default function LeavesScreen() {
                       setTimeDropdownVisible(false);
                     }}
                   >
-                    <Text style={[styles.timeOptionText, timeFilter === opt && { color: '#0D9488', fontWeight: '700' }]}>{opt}</Text>
+                    <Text style={[styles.timeOptionText, timeFilter === opt && { color: '#F97316', fontWeight: '700' }]}>{opt}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -194,7 +194,7 @@ export default function LeavesScreen() {
 
         {/* Leaves List */}
         {loading ? (
-          <ActivityIndicator size="large" color="#0D9488" style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color="#F97316" style={{ marginTop: 40 }} />
         ) : filteredLeaves.length === 0 ? (
           <Text style={styles.emptyText}>No {activeTab.toLowerCase()} leaves found.</Text>
         ) : (
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   toggleBtnActive: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#F97316',
   },
   toggleText: {
     fontSize: 14,
@@ -447,7 +447,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   applyBtn: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#F97316',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -477,8 +477,8 @@ const styles = StyleSheet.create({
     borderColor: '#FECACA',
   },
   approveBtnLayout: {
-    backgroundColor: '#10B981',
-    borderColor: '#059669',
+    backgroundColor: '#F97316',
+    borderColor: '#EA580C',
   },
   rejectBtnText: {
     color: '#DC2626',

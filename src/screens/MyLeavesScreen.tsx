@@ -97,7 +97,7 @@ export default function MyLeavesScreen() {
           <Text style={styles.sectionTitle}>Leave Types</Text>
           <TouchableOpacity style={styles.monthBtn} onPress={() => setMonthPickerVisible(true)}>
             <Text style={styles.monthBtnText}>{isAllFilter ? 'ALL TIME' : `${MONTH_NAMES[selectedMonth]} ${selectedYear}`}</Text>
-            <CalendarIcon color="#0D9488" size={16} />
+            <CalendarIcon color="#F97316" size={16} />
           </TouchableOpacity>
         </View>
 
@@ -150,7 +150,7 @@ export default function MyLeavesScreen() {
 
         {/* Leaves List */}
         {loading ? (
-          <ActivityIndicator size="large" color="#0D9488" style={{ marginTop: 40 }} />
+          <ActivityIndicator size="large" color="#F97316" style={{ marginTop: 40 }} />
         ) : filteredLeaves.length === 0 ? (
           <Text style={styles.emptyText}>No {activeTab.toLowerCase()} leaves found.</Text>
         ) : (
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
   monthBtnText: {
     fontSize: 14,
-    color: '#0D9488',
+    color: '#F97316',
     fontWeight: '700',
   },
   dropdownOverlay: {
@@ -326,8 +326,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   monthOptionBtnActive: {
-    backgroundColor: '#0D9488',
-    borderColor: '#0D9488',
+    backgroundColor: '#F97316',
+    borderColor: '#F97316',
   },
   monthOptionText: {
     fontSize: 14,
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   toggleBtnActive: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#F97316',
   },
   toggleText: {
     fontSize: 14,
@@ -428,7 +428,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   applyBtn: {
-    backgroundColor: '#0D9488',
+    backgroundColor: '#F97316',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,

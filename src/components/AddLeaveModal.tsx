@@ -5,6 +5,8 @@ import CustomDropdown from './CustomDropdown';
 import CustomDatePicker from './CustomDatePicker';
 import { X, Calendar as CalendarIcon, AlignLeft, User, Tag } from 'lucide-react-native';
 
+import { useSelector } from 'react-redux';
+import { RootState } from '../redux/store';
 import api from '../services/api';
 
 type AddLeaveModalProps = {
@@ -15,8 +17,11 @@ type AddLeaveModalProps = {
 };
 
 export default function AddLeaveModal({ visible, onClose, onSave, leaveTypes = [] }: AddLeaveModalProps) {
+  const { user } = useSelector((state: RootState) => state.auth);
+  const isAdminOrHR = user?.role === 'Admin' || user?.role === 'HR';
+  
   const [leaveType, setLeaveType] = useState('Sick Leave');
-  const [employeeId, setEmployeeId] = useState('');
+  const [employeeId, setEmployeeId] = useState(user?.id || user?._id || '');
   const [employees, setEmployees] = useState<any[]>([]);
   const [fetchedLeaveTypes, setFetchedLeaveTypes] = useState<any[]>([]);
   const [startDate, setStartDate] = useState('');
@@ -26,17 +31,19 @@ export default function AddLeaveModal({ visible, onClose, onSave, leaveTypes = [
 
   useEffect(() => {
     if (visible) {
-      api.get('/employees').then(res => {
-        const emps = Array.isArray(res.data) ? res.data : (res.data.data?.employees || res.data.data || []);
-        setEmployees(emps);
-      }).catch(err => console.log('Error fetching employees:', err));
+      if (isAdminOrHR) {
+        api.get('/employees').then(res => {
+          const emps = Array.isArray(res.data) ? res.data : (res.data.data?.employees || res.data.data || []);
+          setEmployees(emps);
+        }).catch(err => console.log('Error fetching employees:', err));
+      }
 
       api.get('/leave-types').then(res => {
         const lts = Array.isArray(res.data) ? res.data : (res.data.data?.leaveTypes || res.data.data || []);
         setFetchedLeaveTypes(lts);
       }).catch(err => console.log('Error fetching leave types:', err));
     }
-  }, [visible]);
+  }, [visible, isAdminOrHR]);
 
   const handleSave = async () => {
     if (!startDate || !endDate || !reason) {
@@ -47,7 +54,7 @@ export default function AddLeaveModal({ visible, onClose, onSave, leaveTypes = [
     try {
       setLoading(true);
       const res = await api.post('/leaves/apply', {
-        employeeId,
+        employeeId: isAdminOrHR ? employeeId : undefined,
         leaveType,
         fromDate: new Date(startDate).toISOString().split('T')[0],
         toDate: new Date(endDate).toISOString().split('T')[0],
@@ -84,14 +91,16 @@ export default function AddLeaveModal({ visible, onClose, onSave, leaveTypes = [
               </TouchableOpacity>
             </View>
 
-            <CustomDropdown
-              label="Employee"
-              value={employeeId}
-              onSelect={setEmployeeId}
-              options={employees.map(emp => ({ label: emp.firstName ? `${emp.firstName} ${emp.lastName}` : emp.name || 'Unknown', value: emp._id || emp.id }))}
-              placeholder="Select Employee"
-              icon={() => <User color="#F97316" size={18} />}
-            />
+            {isAdminOrHR && (
+              <CustomDropdown
+                label="Employee"
+                value={employeeId}
+                onSelect={setEmployeeId}
+                options={employees.map(emp => ({ label: emp.firstName ? `${emp.firstName} ${emp.lastName}` : emp.name || 'Unknown', value: emp._id || emp.id }))}
+                placeholder="Select Employee"
+                icon={() => <User color="#F97316" size={18} />}
+              />
+            )}
 
             <CustomDropdown
               label="Leave Type"

@@ -14,6 +14,7 @@ import performanceReducer from './slices/performanceSlice';
 import dashboardReducer from './slices/dashboardSlice';
 import recruitmentReducer from './slices/recruitmentSlice';
 import masterReducer from './slices/masterSlice';
+import chatReducer from './slices/chatSlice';
 
 export const store = configureStore({
   reducer: {
@@ -32,6 +33,7 @@ export const store = configureStore({
     dashboard: dashboardReducer,
     recruitment: recruitmentReducer,
     master: masterReducer,
+    chat: chatReducer,
   },
 });
 

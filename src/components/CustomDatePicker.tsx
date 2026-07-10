@@ -47,7 +47,7 @@ export default function CustomDatePicker({ label, value, onDateChange, style }: 
                   fontSize: 13,
                   outline: 'none',
                   border: 'none',
-                  color: '#0F172A',
+                  color: value ? '#0F172A' : 'transparent',
                   backgroundColor: 'transparent',
                   fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                 }
