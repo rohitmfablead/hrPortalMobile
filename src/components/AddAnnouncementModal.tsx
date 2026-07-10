@@ -1,12 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity, Text,  Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
 import CustomTextInput from './CustomTextInput';
 import { X, Type, AlignLeft, Calendar as CalendarIcon } from 'lucide-react-native';
 
-export default function AddAnnouncementModal({ visible, onClose, onSave }: any) {
+export default function AddAnnouncementModal({ visible, onClose, onSave, initialData }: any) {
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
-  const [date, setDate] = useState('Oct 15, 2026');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+  useEffect(() => {
+    if (initialData) {
+      setTitle(initialData.title || '');
+      setMessage(initialData.message || '');
+      setDate(initialData.createdAt?.substring(0, 10) || initialData.date || new Date().toISOString().split('T')[0]);
+    } else {
+      setTitle('');
+      setMessage('');
+      setDate(new Date().toISOString().split('T')[0]);
+    }
+  }, [initialData, visible]);
 
   const handleSave = () => {
     onSave(title, message, date);
@@ -19,7 +31,7 @@ export default function AddAnnouncementModal({ visible, onClose, onSave }: any) 
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalContainer}>
           <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>Add Announcement</Text>
+              <Text style={styles.headerTitle}>{initialData ? 'Edit Announcement' : 'Add Announcement'}</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
                 <X color="#F97316" size={24} />
               </TouchableOpacity>
@@ -47,7 +59,7 @@ export default function AddAnnouncementModal({ visible, onClose, onSave }: any) 
             />
 
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-              <Text style={styles.saveBtnText}>Post Announcement</Text>
+              <Text style={styles.saveBtnText}>{initialData ? 'Update Announcement' : 'Post Announcement'}</Text>
             </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>

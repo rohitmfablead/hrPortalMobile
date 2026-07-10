@@ -2,8 +2,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store'
-import { View, StyleSheet, FlatList, TouchableOpacity, Text, DeviceEventEmitter, ActivityIndicator, Alert } from 'react-native';
-import { Megaphone } from 'lucide-react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, Text, DeviceEventEmitter, ActivityIndicator, Alert, Platform } from 'react-native';
+import { Megaphone, Pencil, Trash2 } from 'lucide-react-native';
 import api from '../services/api';
 import AddAnnouncementModal from '../components/AddAnnouncementModal';
 
@@ -12,6 +12,7 @@ export default function AnnouncementsScreen() {
   const isAdminOrHR = user?.role?.toLowerCase() === 'admin' || user?.role?.toLowerCase() === 'hr';
   const [localAnnouncements, setLocalAnnouncements] = useState<any[]>([]);
   const [isModalVisible, setModalVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchAnnouncements = async () => {
@@ -29,17 +30,38 @@ export default function AnnouncementsScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchAnnouncements();
-      const subscription = DeviceEventEmitter.addListener('onAddAction', () => setModalVisible(true));
+      const subscription = DeviceEventEmitter.addListener('onAddAction', () => {
+        setEditingItem(null);
+        setModalVisible(true);
+      });
       return () => subscription.remove();
     }, [])
   );
 
-  const handleAddAnnouncement = async (title: string, message: string, date: string) => {
+  const handleSaveAnnouncement = async (title: string, message: string, date: string) => {
     try {
-      await api.post('/announcements', { title, message, date });
+      if (editingItem) {
+        await api.put(`/announcements/${editingItem.id}`, { title, message, date });
+      } else {
+        await api.post('/announcements', { title, message, date });
+      }
       fetchAnnouncements();
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add announcement');
+      Alert.alert('Error', error.response?.data?.message || 'Failed to save announcement');
+    }
+  };
+
+  const handleEdit = (item: any) => {
+    setEditingItem(item);
+    setModalVisible(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await api.delete(`/announcements/${id}`);
+      fetchAnnouncements();
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to delete');
     }
   };
 
@@ -59,9 +81,20 @@ export default function AnnouncementsScreen() {
             <View style={styles.cardContent}>
               <View style={styles.cardHeader}>
                 <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.date}>{item.date}</Text>
+                <Text style={styles.date}>{item.createdAt?.substring(0, 10) || item.date}</Text>
               </View>
               <Text style={styles.message} numberOfLines={3}>{item.message}</Text>
+              
+              {isAdminOrHR && (
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12, gap: 16 }}>
+                  <TouchableOpacity onPress={() => handleEdit(item)}>
+                    <Pencil size={18} color="#3B82F6" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => handleDelete(item.id)}>
+                    <Trash2 size={18} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         )}
@@ -74,8 +107,9 @@ export default function AnnouncementsScreen() {
       )}
       <AddAnnouncementModal 
         visible={isModalVisible} 
-        onClose={() => setModalVisible(false)} 
-        onSave={handleAddAnnouncement} 
+        onClose={() => { setModalVisible(false); setEditingItem(null); }} 
+        onSave={handleSaveAnnouncement}
+        initialData={editingItem} 
       />
     </View>
   );
