@@ -3,12 +3,22 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store'
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, DeviceEventEmitter, ActivityIndicator, Alert } from 'react-native';
+import { RefreshControl } from "react-native";
 import { Palmtree } from 'lucide-react-native';
 import api from '../services/api';
 import { mockHolidays } from '../mockData/mockData';
 import AddHolidayModal from '../components/AddHolidayModal';
 
 export default function HolidaysScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const { user } = useSelector((state: RootState) => state.auth);
   const isAdminOrHR = user?.role?.toLowerCase() === 'admin' || user?.role?.toLowerCase() === 'hr';
   const [localHolidays, setLocalHolidays] = useState<any[]>([]);
@@ -50,6 +60,7 @@ export default function HolidaysScreen() {
         <ActivityIndicator size="large" color="#3B82F6" style={{ marginTop: 20 }} />
       ) : (
         <FlatList
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
         data={localHolidays}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -65,7 +76,7 @@ export default function HolidaysScreen() {
         )}
         ListEmptyComponent={
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 60 }}>
-            <Text style={{ color: '#64748B', fontSize: 16, fontWeight: '500' }}>No holidays available</Text>
+            <Text style={{ color: '#64748B', fontSize: 18, fontWeight: '500' }}>No holidays available</Text>
           </View>
         }
       />
@@ -110,13 +121,13 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#0F172A',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     marginBottom: 4,
   },
   date: {
     color: '#059669',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
   },
 });

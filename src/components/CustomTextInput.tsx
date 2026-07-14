@@ -11,17 +11,18 @@ export default function CustomTextInput(props: CustomTextInputProps) {
     <TextInput
       mode="outlined"
       textColor="#0F172A"
-      dense={true}
       {...props}
       theme={{
+        roundness: 12,
         colors: {
-          background: '#FFFFFF',
+          background: '#F8FAFC',
           onSurfaceVariant: '#64748B', // Unfocused placeholder color
           primary: '#F97316', // Focused placeholder and outline color
+          outline: '#E2E8F0', // Inactive outline color
         },
         ...props.theme,
       }}
-      style={[{ fontSize: 13 }, styles.input, props.style]}
+      style={[{ fontSize: 17, height: 54 }, styles.input, props.style]}
     />
   );
 }

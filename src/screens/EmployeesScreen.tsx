@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, StyleSheet, FlatList, ActivityIndicator, Text, TouchableOpacity, Alert, DeviceEventEmitter } from 'react-native';
+import { View, StyleSheet, FlatList, ActivityIndicator, Text, TouchableOpacity, Alert, DeviceEventEmitter, Platform, Image } from 'react-native';
+import { RefreshControl } from "react-native";
 import { Card, Title, Paragraph, Avatar, Portal, Modal } from 'react-native-paper';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchEmployees, addEmployee, updateEmployee, deleteEmployee } from '../redux/slices/employeeSlice';
@@ -10,6 +11,15 @@ import { useNavigation } from '@react-navigation/native';
 import CustomTextInput from '../components/CustomTextInput';
 
 export default function EmployeesScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const dispatch = useDispatch<AppDispatch>();
   const navigation = useNavigation<any>();
   const { employees, loading, error } = useSelector((state: RootState) => state.employee);
@@ -22,7 +32,7 @@ export default function EmployeesScreen() {
 
   useEffect(() => {
     dispatch(fetchEmployees({}));
-  }, [dispatch]);
+  }, [dispatch, refreshCounter]);
 
   useFocusEffect(
     useCallback(() => {
@@ -56,7 +66,7 @@ export default function EmployeesScreen() {
   };
 
   if (loading && employees.length === 0) return <View style={styles.center}><ActivityIndicator size="large" color="#F97316" /></View>;
-  if (error) return <View style={styles.center}><Text style={{color: 'red'}}>{error}</Text></View>;
+  if (error) return <View style={styles.center}><Text style={{ color: 'red' }}>{error}</Text></View>;
 
   const filteredEmployees = employees.filter((emp: any) => {
     const term = searchQuery.toLowerCase();
@@ -81,58 +91,65 @@ export default function EmployeesScreen() {
         />
       </View>
       <FlatList
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
         data={filteredEmployees}
         keyExtractor={(item) => item.id || item._id}
+        contentContainerStyle={styles.listContainer}
         renderItem={({ item }) => {
           const fullName = item.name || `${item.firstName || ''} ${item.lastName || ''}`.trim() || 'Unknown';
           const avatarLabel = fullName.substring(0, 2).toUpperCase() || 'EMP';
-          const joinDate = item.joiningDate ? new Date(item.joiningDate).toLocaleDateString() : 'N/A';
           const isActive = item.status === 'Active';
 
           return (
-            <TouchableOpacity onPress={() => navigation.navigate('EmployeeDetails', { employee: item })} activeOpacity={0.7}>
-              <Card style={styles.card}>
-                <Card.Content style={styles.cardContent}>
+            <TouchableOpacity onPress={() => navigation.navigate('EmployeeDetails', { employee: item })} activeOpacity={0.8}>
+              <View style={styles.card}>
+
+                {/* Full Height Left Image */}
+                {item.profilePicture?.url ? (
+                  <Image source={{ uri: item.profilePicture.url }} style={styles.fullImage} />
+                ) : (
+                  <View style={styles.fullImagePlaceholder}>
+                    <Text style={styles.fullImagePlaceholderText}>{avatarLabel}</Text>
+                  </View>
+                )}
+
+                {/* Right Side Content */}
+                <View style={styles.cardContent}>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.title} numberOfLines={1}>{fullName}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: isActive ? '#DCFCE7' : '#FEE2E2' }]}>
+                      <Text style={[styles.statusText, { color: isActive ? '#16A34A' : '#EF4444' }]}>{item.status || 'Active'}</Text>
+                    </View>
+                  </View>
+
+                  <Text style={styles.role} numberOfLines={1}>{item.designation || item.role || 'Employee'}</Text>
+
+                  <View style={styles.compactDetails}>
+                    <View style={styles.compactRow}>
+                      <Mail color="#94A3B8" size={14} style={styles.detailIcon} />
+                      <Text style={styles.compactText} numberOfLines={1}>{item.email || 'N/A'}</Text>
+                    </View>
+                    <View style={styles.compactRow}>
+                      <Fingerprint color="#94A3B8" size={14} style={styles.detailIcon} />
+                      <Text style={styles.compactText} numberOfLines={1}>{item.department || 'N/A'}</Text>
+                    </View>
+                  </View>
+
                   {isAdminOrHR && (
                     <View style={styles.actionsRow}>
                       <TouchableOpacity style={styles.actionBtn} onPress={(e) => { e.stopPropagation(); navigation.navigate('AddEditEmployee', { employee: item }); }}>
-                        <Pencil color="#475569" size={18} />
+                        <Pencil color="#F97316" size={16} />
                       </TouchableOpacity>
                       {user?.role === 'Admin' && (
-                        <TouchableOpacity style={styles.actionBtn} onPress={(e) => { e.stopPropagation(); confirmDelete(item.id || item._id); }}>
-                          <Trash2 color="#EF4444" size={18} />
+                        <TouchableOpacity style={styles.actionBtnDelete} onPress={(e) => { e.stopPropagation(); confirmDelete(item.id || item._id); }}>
+                          <Trash2 color="#EF4444" size={16} />
                         </TouchableOpacity>
                       )}
                     </View>
                   )}
-                  
-                  <View style={styles.cardHeader}>
-                    {item.profilePicture?.url ? (
-                      <Avatar.Image size={60} source={{ uri: item.profilePicture.url }} style={styles.avatar} />
-                    ) : (
-                      <Avatar.Text size={60} label={avatarLabel} style={styles.avatar} />
-                    )}
-                    <View style={styles.headerText}>
-                      <Title style={styles.title} numberOfLines={1}>{fullName}</Title>
-                      <Paragraph style={styles.role} numberOfLines={1}>{item.designation || item.role || 'Employee'}</Paragraph>
-                      <View style={[styles.statusBadge, { backgroundColor: isActive ? '#DCFCE7' : '#FEE2E2' }]}>
-                        <Text style={[styles.statusText, { color: isActive ? '#16A34A' : '#EF4444' }]}>{item.status || 'Active'}</Text>
-                      </View>
-                    </View>
-                  </View>
+                </View>
 
-                  <View style={styles.compactDetails}>
-                    <View style={styles.compactRow}>
-                      <Mail color="#64748B" size={14} style={styles.detailIcon} />
-                      <Text style={styles.compactText} numberOfLines={1}>{item.email || 'N/A'}</Text>
-                    </View>
-                    <View style={styles.compactRow}>
-                      <Fingerprint color="#64748B" size={14} style={styles.detailIcon} />
-                      <Text style={styles.compactText}>{item.department || 'N/A'}</Text>
-                    </View>
-                  </View>
-                </Card.Content>
-              </Card>
+              </View>
             </TouchableOpacity>
           );
         }}
@@ -155,44 +172,66 @@ export default function EmployeesScreen() {
   );
 }
 
+const shadowStyle = Platform.select({
+  web: { boxShadow: '0px 8px 24px rgba(249, 115, 22, 0.08)' } as any,
+  default: { shadowColor: '#F97316', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 }
+});
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF', padding: 16 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' },
-  searchContainer: { marginBottom: 12 },
-  row: { justifyContent: 'space-between' },
-  card: { 
-    marginHorizontal: 4, 
-    marginBottom: 12, 
-    backgroundColor: '#FFFFFF', 
-    borderRadius: 16, 
-    borderWidth: 1, 
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC' },
+  searchContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 },
+  listContainer: { paddingHorizontal: 16, paddingBottom: 24 },
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    marginBottom: 16,
+    ...shadowStyle,
+    overflow: 'hidden',
   },
-  cardContent: { padding: 16 },
-  actionsRow: { flexDirection: 'row', position: 'absolute', top: 16, right: 16, zIndex: 1 },
-  actionBtn: { padding: 6, marginLeft: 8, backgroundColor: '#F8FAFC', borderRadius: 8 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center' },
-  avatar: { backgroundColor: '#F97316', marginRight: 16 },
-  headerText: { flex: 1, paddingRight: 60 }, // Padding to avoid overlap with actions
-  title: { color: '#0F172A', fontSize: 18, fontWeight: '700', marginBottom: 2 },
-  role: { color: '#64748B', fontSize: 14, marginBottom: 8, fontWeight: '500' },
-  statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-  statusText: { fontSize: 12, fontWeight: '700' },
-  compactDetails: { marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#F1F5F9', flexDirection: 'row', justifyContent: 'space-between' },
-  compactRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  detailIcon: { marginRight: 6 },
-  compactText: { color: '#475569', fontSize: 13, fontWeight: '500' },
-  deleteModalContainer: { backgroundColor: '#FFFFFF', margin: 20, padding: 24, borderRadius: 16, alignItems: 'center' },
-  deleteModalTitle: { fontSize: 20, fontWeight: 'bold', color: '#0F172A', marginBottom: 12 },
-  deleteModalText: { fontSize: 15, color: '#475569', textAlign: 'center', marginBottom: 24, lineHeight: 22 },
+  fullImage: {
+    width: 130,
+    height: '100%',
+    resizeMode: 'cover',
+    backgroundColor: '#F8FAFC',
+  },
+  fullImagePlaceholder: {
+    width: 130,
+    height: '100%',
+    backgroundColor: '#F97316',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImagePlaceholderText: {
+    color: '#FFFFFF',
+    fontSize: 28,
+    fontWeight: 'bold',
+  },
+  cardContent: {
+    flex: 1,
+    padding: 16,
+  },
+  nameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  title: { color: '#0F172A', fontSize: 21, fontWeight: '800', flex: 1, marginRight: 8 },
+  statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  statusText: { fontSize: 15, fontWeight: '800' },
+  role: { color: '#F97316', fontSize: 17, fontWeight: '700', marginBottom: 12 },
+  compactDetails: { gap: 6 },
+  compactRow: { flexDirection: 'row', alignItems: 'center' },
+  detailIcon: { marginRight: 8 },
+  compactText: { color: '#64748B', fontSize: 17, fontWeight: '600' },
+  actionsRow: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  actionBtn: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#FFF7ED', borderRadius: 12, marginLeft: 8 },
+  actionBtnDelete: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#FEF2F2', borderRadius: 12, marginLeft: 8 },
+  deleteModalContainer: { backgroundColor: '#FFFFFF', margin: 20, padding: 24, borderRadius: 20, alignItems: 'center', ...shadowStyle },
+  deleteModalTitle: { fontSize: 24, fontWeight: '800', color: '#0F172A', marginBottom: 12 },
+  deleteModalText: { fontSize: 19, color: '#64748B', textAlign: 'center', marginBottom: 24, lineHeight: 24 },
   deleteModalActions: { flexDirection: 'row', width: '100%', justifyContent: 'space-between' },
-  cancelBtn: { flex: 1, paddingVertical: 12, marginRight: 8, borderRadius: 8, backgroundColor: '#F1F5F9', alignItems: 'center' },
-  cancelBtnText: { color: '#475569', fontWeight: '600', fontSize: 16 },
-  confirmDeleteBtn: { flex: 1, paddingVertical: 12, marginLeft: 8, borderRadius: 8, backgroundColor: '#EF4444', alignItems: 'center' },
-  confirmDeleteBtnText: { color: '#FFFFFF', fontWeight: '600', fontSize: 16 },
+  cancelBtn: { flex: 1, paddingVertical: 14, marginRight: 8, borderRadius: 12, backgroundColor: '#F1F5F9', alignItems: 'center' },
+  cancelBtnText: { color: '#475569', fontWeight: '700', fontSize: 20 },
+  confirmDeleteBtn: { flex: 1, paddingVertical: 14, marginLeft: 8, borderRadius: 12, backgroundColor: '#EF4444', alignItems: 'center' },
+  confirmDeleteBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 20 },
 });

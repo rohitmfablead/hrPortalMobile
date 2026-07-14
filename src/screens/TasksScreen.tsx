@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, DeviceEventEmitter, ActivityIndicator, Alert } from 'react-native';
+import { RefreshControl } from "react-native";
 import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store';
@@ -8,6 +9,15 @@ import api from '../services/api';
 import AddTaskModal from '../components/AddTaskModal';
 
 export default function TasksScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const { user } = useSelector((state: RootState) => state.auth);
   const isAdminOrHR = user?.role?.toLowerCase() === 'admin' || user?.role?.toLowerCase() === 'hr';
   
@@ -90,6 +100,7 @@ export default function TasksScreen() {
         </View>
       ) : (
         <FlatList
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
           data={filteredTasks}
           keyExtractor={(item) => item._id || item.id}
           contentContainerStyle={styles.listContainer}
@@ -185,7 +196,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF7ED',
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#64748B',
   },
@@ -223,7 +234,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   priorityText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
   },
   statusBadge: {
@@ -233,10 +244,10 @@ const styles = StyleSheet.create({
   },
   statusPendingBg: { backgroundColor: '#FFFBEB' },
   statusCompletedBg: { backgroundColor: '#ECFDF5' },
-  statusPendingText: { color: '#D97706', fontSize: 12, fontWeight: '600' },
-  statusCompletedText: { color: '#059669', fontSize: 12, fontWeight: '600' },
+  statusPendingText: { color: '#D97706', fontSize: 14, fontWeight: '600' },
+  statusCompletedText: { color: '#059669', fontSize: 14, fontWeight: '600' },
   taskTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#0F172A',
     marginBottom: 6,
@@ -246,7 +257,7 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   taskDesc: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#475569',
     lineHeight: 20,
   },
@@ -268,7 +279,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   infoText: {
-    fontSize: 13,
+    fontSize: 15,
     color: '#64748B',
     marginLeft: 6,
     fontWeight: '500',
@@ -304,12 +315,12 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     color: '#0F172A',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     marginBottom: 8,
   },
   emptyDesc: {
     color: '#64748B',
-    fontSize: 14,
+    fontSize: 16,
   },
 });

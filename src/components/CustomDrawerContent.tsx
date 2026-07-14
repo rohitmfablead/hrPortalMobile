@@ -5,19 +5,26 @@ import { Avatar, Title, Caption, Divider, List } from 'react-native-paper';
 import { useSelector, useDispatch } from 'react-redux';
 import { LogOut, Database, LayoutList, Briefcase, ChevronDown, ChevronUp, Palmtree, BookOpen, Bell, FileSignature } from 'lucide-react-native';
 import { RootState } from '../redux/store';
-import { logoutLocally } from '../redux/slices/authSlice';
+import { logoutLocally, logoutUser } from '../redux/slices/authSlice';
 import LogoutConfirmationModal from './LogoutConfirmationModal';
 
 export default function CustomDrawerContent(props: any) {
   const { user } = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
   const [isLogoutModalVisible, setLogoutModalVisible] = React.useState(false);
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const [masterExpanded, setMasterExpanded] = React.useState(false);
   const isAdminOrHR = user?.role === 'Admin' || user?.role === 'admin' || user?.role === 'HR' || user?.role === 'hr';
 
   const handleLogout = () => {
-    setLogoutModalVisible(false);
-    dispatch(logoutLocally());
+    setIsLoggingOut(true);
+    // Add artificial delay to ensure the loader is visible before unmounting
+    setTimeout(() => {
+      dispatch(logoutUser() as any).finally(() => {
+        setIsLoggingOut(false);
+        setLogoutModalVisible(false);
+      });
+    }, 1000);
   };
 
   return (
@@ -75,7 +82,7 @@ export default function CustomDrawerContent(props: any) {
               <DrawerItem
                 label={({ focused, color }) => (
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                    <Title style={{ fontSize: 14, fontWeight: '500', color: '#0F172A', marginTop: 0, marginBottom: 0 }}>Master</Title>
+                    <Title style={{ fontSize: 16, fontWeight: '500', color: '#0F172A', marginTop: 0, marginBottom: 0 }}>Master</Title>
                     {masterExpanded ? <ChevronUp color="#0F172A" size={18} /> : <ChevronDown color="#0F172A" size={18} />}
                   </View>
                 )}
@@ -155,6 +162,7 @@ export default function CustomDrawerContent(props: any) {
         visible={isLogoutModalVisible}
         onClose={() => setLogoutModalVisible(false)}
         onConfirm={handleLogout}
+        loading={isLoggingOut}
       />
     </View>
   );
@@ -166,7 +174,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   drawerContent: {
-    flex: 1,
+    flexGrow: 1,
   },
   userInfoSection: {
     paddingLeft: 10,
@@ -182,13 +190,13 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
   },
   title: {
-    fontSize: 18,
+    fontSize: 20,
     marginTop: 3,
     fontWeight: 'bold',
     color: '#0F172A',
   },
   caption: {
-    fontSize: 14,
+    fontSize: 16,
     lineHeight: 14,
     color: '#0F172A',
   },
@@ -211,6 +219,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   logoutText: {
-    fontSize: 16, marginLeft: 15, fontWeight: 'bold', color: '#F97316',
+    fontSize: 18, marginLeft: 15, fontWeight: 'bold', color: '#F97316',
   },
 });

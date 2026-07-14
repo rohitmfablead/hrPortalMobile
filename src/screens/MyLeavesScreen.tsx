@@ -1,11 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Alert, DeviceEventEmitter, ActivityIndicator, Platform, Modal } from 'react-native';
+import { RefreshControl } from "react-native";
 import { Calendar as CalendarIcon, Clock, ChevronRight } from 'lucide-react-native';
 import AddLeaveModal from '../components/AddLeaveModal';
 import api from '../services/api';
 
 export default function MyLeavesScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const navigation = useNavigation<any>();
   const [isModalVisible, setModalVisible] = useState(false);
   const [leaves, setLeaves] = useState<any[]>([]);
@@ -90,7 +100,7 @@ export default function MyLeavesScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}>
         
         {/* Header with Month Picker */}
         <View style={styles.topHeader}>
@@ -237,7 +247,7 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#111827',
     marginBottom: 16,
@@ -258,12 +268,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   gridCount: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '800',
     marginBottom: 6,
   },
   gridTitle: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
     textAlign: 'center',
   },
@@ -285,7 +295,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   monthBtnText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#F97316',
     fontWeight: '700',
   },
@@ -304,7 +314,7 @@ const styles = StyleSheet.create({
     maxWidth: 340,
   },
   dropdownTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#0F172A',
     marginBottom: 20,
@@ -330,7 +340,7 @@ const styles = StyleSheet.create({
     borderColor: '#F97316',
   },
   monthOptionText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#64748B',
   },
@@ -344,7 +354,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   seeAllText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#0F172A',
   },
@@ -365,7 +375,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F97316',
   },
   toggleText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#64748B',
   },
@@ -376,7 +386,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#64748B',
     marginTop: 40,
-    fontSize: 15,
+    fontSize: 17,
   },
   leaveCard: {
     backgroundColor: '#FFFFFF',
@@ -395,7 +405,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   leaveTypeTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: '#111827',
   },
@@ -408,7 +418,7 @@ const styles = StyleSheet.create({
   badgeRed: { backgroundColor: '#FEF2F2' },
   badgeOrange: { backgroundColor: '#FEF3C7' },
   statusText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
   },
   textGreen: { color: '#059669' },
@@ -423,7 +433,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   infoText: {
-    fontSize: 13,
+    fontSize: 15,
     color: '#4B5563',
     fontWeight: '500',
   },
@@ -435,7 +445,7 @@ const styles = StyleSheet.create({
   },
   applyBtnText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '700',
   },
 });

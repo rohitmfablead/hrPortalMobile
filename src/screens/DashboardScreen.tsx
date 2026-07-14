@@ -1,22 +1,21 @@
 // src/screens/DashboardScreen.tsx
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image, Platform } from 'react-native';
+import { RefreshControl } from "react-native";
 import { Card, Text } from 'react-native-paper';
-import api from '../services/api';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../redux/store';
 import { fetchDashboardData } from '../redux/slices/dashboardSlice';
-import { Users, CalendarCheck, Clock, CalendarOff, LogIn, LogOut, Cake, CheckCircle, Palmtree, BookOpen, Megaphone, MessageSquare, LineChart, Bell } from 'lucide-react-native';
-import { markManualAttendance } from '../redux/slices/attendanceSlice';
+import { Users, CalendarCheck, Clock, CalendarOff, Palmtree, BookOpen, Megaphone, MessageSquare, LineChart, Bell, Cake } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { mockAttendance, mockLeaves, mockBirthdays, mockTasks } from '../mockData/mockData';
 import Loader from '../components/Loader';
+import { LinearGradient } from 'expo-linear-gradient';
 
-type DashboardStats = {
-  totalEmployees: number;
-  todayAttendance: number;
-  pendingLeaves: number;
-  lateCount: number;
+const getAvatarUri = (avatarPath: string | undefined | null) => {
+  if (!avatarPath) return null;
+  if (avatarPath.startsWith('http')) return avatarPath;
+  const normalizedPath = avatarPath.replace(/\\/g, '/');
+  return `https://hrback-production-61ba.up.railway.app${normalizedPath.startsWith('/') ? '' : '/'}${normalizedPath}`;
 };
 
 const DashboardScreen = () => {
@@ -34,7 +33,7 @@ const DashboardScreen = () => {
 
   useEffect(() => {
     dispatch(fetchDashboardData('today'));
-  }, [dispatch]);
+  }, [dispatch, refreshCounter]);
 
   if (loading) {
     return <Loader />;
@@ -48,109 +47,79 @@ const DashboardScreen = () => {
     );
   }
 
+  const avatarUri = getAvatarUri(user?.avatar);
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
-
-      {/* Welcome Section */}
-      <View style={styles.welcomeSection}>
-        {user?.avatar ? (
-          <Image source={{ uri: user.avatar }} style={styles.headerAvatar} />
-        ) : (
-          <View style={styles.headerAvatarPlaceholder}>
-            <Text style={styles.headerAvatarText}>
-              {user?.name ? user.name.substring(0, 2).toUpperCase() : 'AD'}
-            </Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}>
+      
+      {/* Welcome Section - Premium Header with Gradient */}
+      <LinearGradient colors={['#F97316', '#EA580C']} style={styles.welcomeSection}>
+        <View style={styles.welcomeHeaderRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.greeting}>{getGreeting()}</Text>
+            <Text style={styles.userName}>{user?.name || 'Admin'} 👋</Text>
           </View>
-        )}
-        <View style={{ marginLeft: 16, flex: 1 }}>
-          <Text style={styles.greeting}>{getGreeting()}</Text>
-          <Text style={styles.userName}>{user?.name || 'Admin'} 👋</Text>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.headerAvatar} />
+          ) : (
+            <View style={styles.headerAvatarPlaceholder}>
+              <Text style={styles.headerAvatarText}>
+                {user?.name ? user.name.substring(0, 2).toUpperCase() : 'AD'}
+              </Text>
+            </View>
+          )}
         </View>
-      </View>
+      </LinearGradient>
 
-      {/* Quick Actions Removed for Admin */}
-
+      {/* Quick Links Modern Style */}
       <Text style={styles.sectionTitle}>Quick Links</Text>
       <View style={styles.quickLinksContainer}>
         {[
-          { name: 'Holidays', route: 'Holidays', icon: Palmtree, color: '#F97316' },
-          { name: 'Rules', route: 'Rules', icon: BookOpen, color: '#F97316' },
-          { name: 'Announcements', route: 'Announcements', icon: Megaphone, color: '#F97316' },
-          { name: 'Feedback', route: 'Feedback', icon: MessageSquare, color: '#F97316' },
-          { name: 'Performance', route: 'Performances', icon: LineChart, color: '#F97316' },
-          { name: 'Notifications', route: 'Notifications', icon: Bell, color: '#F97316' },
+          { name: 'Holidays', route: 'Holidays', icon: Palmtree, color: '#10B981', gradient: ['#D1FAE5', '#A7F3D0'] },
+          { name: 'Rules', route: 'Rules', icon: BookOpen, color: '#3B82F6', gradient: ['#DBEAFE', '#BFDBFE'] },
+          { name: 'Announce', route: 'Announcements', icon: Megaphone, color: '#F59E0B', gradient: ['#FEF3C7', '#FDE68A'] },
+          { name: 'Feedback', route: 'Feedback', icon: MessageSquare, color: '#8B5CF6', gradient: ['#EDE9FE', '#DDD6FE'] },
+          { name: 'Performance', route: 'Performances', icon: LineChart, color: '#EC4899', gradient: ['#FCE7F3', '#FBCFE8'] },
+          { name: 'Alerts', route: 'Notifications', icon: Bell, color: '#EF4444', gradient: ['#FEE2E2', '#FECACA'] },
         ].map((link) => {
           const Icon = link.icon;
           return (
-            <TouchableOpacity
-              key={link.name}
-              style={styles.quickLinkBox}
-              onPress={() => navigation.navigate(link.route as never)}
-            >
-              <View style={[styles.quickLinkIconContainer, { backgroundColor: `${link.color}20` }]}>
+            <TouchableOpacity key={link.name} style={styles.quickLinkModernBox} onPress={() => navigation.navigate(link.route as never)}>
+              <LinearGradient colors={link.gradient as any} style={styles.quickLinkModernIconWrapper}>
                 <Icon color={link.color} size={24} />
-              </View>
-              <Text style={styles.quickLinkText}>{link.name}</Text>
+              </LinearGradient>
+              <Text style={styles.quickLinkModernText}>{link.name}</Text>
             </TouchableOpacity>
           );
         })}
       </View>
 
-      <Text style={styles.sectionTitle}>Overview</Text>
-
-      {/* Stats Grid */}
-      <View style={styles.grid}>
-        {/* Total Employees */}
-        <Card style={[styles.card, styles.cardBlue]}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: 'rgba(249, 115, 22, 0.2)' }]}>
-                <Users color="#F97316" size={24} />
+      <Text style={styles.sectionTitle}>Overview Dashboard</Text>
+      
+      {/* Premium Stats Grid */}
+      <View style={styles.premiumGrid}>
+        {[
+          { label: 'Total Employees', value: stats?.totalEmployees || 0, icon: Users, gradient: ['#3B82F6', '#2563EB'] },
+          { label: 'Present Today', value: stats?.presentToday || 0, icon: CalendarCheck, gradient: ['#10B981', '#059669'] },
+          { label: 'Pending Leaves', value: stats?.pendingLeaves || 0, icon: CalendarOff, gradient: ['#F59E0B', '#D97706'] },
+          { label: 'Late Arrivals', value: stats?.lateCount || 0, icon: Clock, gradient: ['#EF4444', '#DC2626'] },
+        ].map((stat, idx) => {
+          const Icon = stat.icon;
+          return (
+            <LinearGradient key={idx} colors={stat.gradient as any} style={styles.premiumCard}>
+              <View style={styles.premiumCardHeader}>
+                <View style={styles.premiumIconContainer}>
+                  <Icon color="#FFFFFF" size={24} />
+                </View>
               </View>
-            </View>
-            <Text style={styles.value}>{stats?.totalEmployees || 0}</Text>
-            <Text style={styles.label}>Total Employees</Text>
-          </Card.Content>
-        </Card>
-
-        {/* Today Attendance */}
-        <Card style={[styles.card, styles.cardGreen]}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: '#FFFFFF' }]}>
-                <CalendarCheck color="#F97316" size={24} />
-              </View>
-            </View>
-            <Text style={styles.value}>{stats?.presentToday || 0}</Text>
-            <Text style={styles.label}>Present Today</Text>
-          </Card.Content>
-        </Card>
-
-        {/* Pending Leaves */}
-        <Card style={[styles.card, styles.cardOrange]}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: 'rgba(249, 115, 22, 0.2)' }]}>
-                <CalendarOff color="#F97316" size={24} />
-              </View>
-            </View>
-            <Text style={styles.value}>{stats?.pendingLeaves || 0}</Text>
-            <Text style={styles.label}>Pending Leaves</Text>
-          </Card.Content>
-        </Card>
-
-        {/* Late Arrivals */}
-        <Card style={[styles.card, styles.cardRed]}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: '#FFFFFF' }]}>
-                <Clock color="#F97316" size={24} />
-              </View>
-            </View>
-            <Text style={styles.value}>{stats?.lateCount || 0}</Text>
-            <Text style={styles.label}>Late Arrivals</Text>
-          </Card.Content>
-        </Card>
+              <Text style={styles.premiumCardValue}>{stat.value}</Text>
+              <Text style={styles.premiumCardLabel}>{stat.label}</Text>
+              {/* Decorative Element */}
+              <View style={styles.decorativeCircleTop} />
+              <View style={styles.decorativeCircleBottom} />
+            </LinearGradient>
+          )
+        })}
       </View>
 
       {/* Weekly Attendance */}
@@ -160,23 +129,74 @@ const DashboardScreen = () => {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
         {stats?.weeklyAttendance && stats.weeklyAttendance.length > 0 ? (
           stats.weeklyAttendance.map((item: any, index: number) => (
-            <View key={index} style={styles.weeklyCard}>
+            <View key={index} style={styles.weeklyModernCard}>
               <Text style={styles.weeklyDay}>{item.day}</Text>
               <Text style={styles.weeklyDate}>{new Date(item.date).getDate()}</Text>
               <View style={styles.weeklyStatsRow}>
                 <View style={styles.weeklyStat}>
-                  <Text style={styles.weeklyStatValueGreen}>{item.present}</Text>
+                  <Text style={[styles.weeklyStatValue, { color: '#10B981' }]}>{item.present}</Text>
                   <Text style={styles.weeklyStatLabel}>P</Text>
                 </View>
                 <View style={styles.weeklyStat}>
-                  <Text style={styles.weeklyStatValueRed}>{item.absent}</Text>
+                  <Text style={[styles.weeklyStatValue, { color: '#EF4444' }]}>{item.absent}</Text>
                   <Text style={styles.weeklyStatLabel}>A</Text>
                 </View>
               </View>
             </View>
           ))
         ) : (
-          <Text style={{ color: '#0F172A', marginLeft: 16 }}>No weekly data available</Text>
+          <Text style={{ color: '#64748B', marginLeft: 16 }}>No weekly data available</Text>
+        )}
+      </ScrollView>
+
+      {/* Leave Overview */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Leave Overview</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Leaves' as never)}>
+          <Text style={styles.viewAllText}>View All</Text>
+        </TouchableOpacity>
+      </View>
+      {stats?.leaveOverview && stats.leaveOverview.length > 0 ? (
+        stats.leaveOverview.map((item: any, index: number) => {
+          const isApproved = item.name === 'Approved';
+          const isPending = item.name === 'Pending';
+          return (
+            <View key={index} style={styles.leaveModernCard}>
+              <View style={[styles.leaveColorBar, { backgroundColor: isApproved ? '#10B981' : (isPending ? '#F59E0B' : '#EF4444') }]} />
+              <View style={styles.leaveContent}>
+                <Text style={styles.leaveType}>{item.name} Leaves</Text>
+              </View>
+              <View style={[styles.statusBadge, isApproved ? styles.badgeGreen : (isPending ? styles.badgeOrange : styles.badgeRed)]}>
+                <Text style={[styles.statusText, isApproved ? styles.textGreen : (isPending ? styles.textOrange : styles.textRed)]}>{item.value}</Text>
+              </View>
+            </View>
+          );
+        })
+      ) : (
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>No leave data</Text>
+        </View>
+      )}
+
+      {/* Upcoming Birthdays */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Upcoming Birthdays</Text>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+        {stats?.upcomingBirthdays && stats.upcomingBirthdays.length > 0 ? (
+          stats.upcomingBirthdays.map((item: any, index: number) => (
+            <LinearGradient key={item.id || index} colors={['#FCE7F3', '#FBCFE8']} style={styles.birthdayModernCard}>
+              <View style={styles.birthdayIconWrapper}>
+                <Cake color="#EC4899" size={24} />
+              </View>
+              <Text style={styles.birthdayModernName} numberOfLines={1}>{item.name}</Text>
+              <Text style={styles.birthdayModernDate}>{new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</Text>
+            </LinearGradient>
+          ))
+        ) : (
+          <View style={[styles.emptyCard, { marginLeft: 16, width: 250 }]}>
+            <Text style={styles.emptyText}>No upcoming birthdays</Text>
+          </View>
         )}
       </ScrollView>
 
@@ -200,479 +220,94 @@ const DashboardScreen = () => {
         </View>
       )}
 
-      {/* Leave Overview */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Leave Overview</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Leaves' as never)}>
-          <Text style={styles.viewAllText}>View All</Text>
-        </TouchableOpacity>
-      </View>
-      {stats?.leaveOverview && stats.leaveOverview.length > 0 ? (
-        stats.leaveOverview.map((item: any, index: number) => {
-          const isApproved = item.name === 'Approved';
-          const isPending = item.name === 'Pending';
-          return (
-            <View key={index} style={[styles.leaveCard, isApproved ? styles.leaveApproved : (isPending ? styles.leavePending : styles.leaveRejected)]}>
-              <View style={styles.leaveContent}>
-                <Text style={styles.leaveType}>{item.name} Leaves</Text>
-              </View>
-              <View style={[styles.statusBadge, isApproved ? styles.badgeGreen : (isPending ? styles.badgeOrange : styles.badgeRed)]}>
-                <Text style={[styles.statusText, isApproved ? styles.textGreen : (isPending ? styles.textOrange : styles.textRed)]}>{item.value}</Text>
-              </View>
-            </View>
-          );
-        })
-      ) : (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyText}>No leave data</Text>
-        </View>
-      )}
-
-      {/* Upcoming Birthdays */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Upcoming Birthdays</Text>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-        {stats?.upcomingBirthdays && stats.upcomingBirthdays.length > 0 ? (
-          stats.upcomingBirthdays.map((item: any, index: number) => (
-            <View key={item.id || index} style={styles.birthdayModernCard}>
-              <View style={styles.birthdayIconWrapper}>
-                <Cake color="#EC4899" size={24} />
-              </View>
-              <Text style={styles.birthdayModernName} numberOfLines={1}>{item.name}</Text>
-              <Text style={styles.birthdayModernDate}>{new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</Text>
-            </View>
-          ))
-        ) : (
-          <View style={[styles.emptyCard, { marginLeft: 16, width: 250 }]}>
-            <Text style={styles.emptyText}>No upcoming birthdays</Text>
-          </View>
-        )}
-      </ScrollView>
-
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  errorText: {
-    color: '#0F172A',
-    fontSize: 16,
-    fontWeight: '500',
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  scrollContent: { paddingBottom: 60 },
+  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC' },
+  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC' },
+  errorText: { color: '#0F172A', fontSize: 18, fontWeight: '500' },
+  
   welcomeSection: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 8,
-  },
-  greeting: {
-    fontSize: 16,
-    color: '#64748B',
-    marginBottom: 2,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    letterSpacing: 0.5,
-  },
-  headerAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 2,
-    borderColor: '#F97316',
-  },
-  headerAvatarPlaceholder: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#F97316',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(249, 115, 22, 0.2)',
-  },
-  headerAvatarText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    width: '48%',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  checkInBtn: {
-    backgroundColor: '#FFFFFF', // Green
-  },
-  checkOutBtn: {
-    backgroundColor: '#FFFFFF', // Red
-  },
-  actionBtnText: {
-    color: '#0F172A',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#0F172A',
-    marginBottom: 16,
-  },
-  quickLinksContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  quickLinkBox: {
-    width: '31%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  quickLinkIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  quickLinkText: {
-    color: '#0F172A',
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  card: {
-    width: '48%',
-    marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  cardBlue: { borderBottomWidth: 4, borderBottomColor: '#F97316' },
-  cardGreen: { borderBottomWidth: 4, borderBottomColor: '#0F172A' },
-  cardOrange: { borderBottomWidth: 4, borderBottomColor: '#F97316' },
-  cardRed: { borderBottomWidth: 4, borderBottomColor: '#0F172A' },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  value: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#F97316',
-    marginBottom: 4, textAlign: 'center',
-  },
-  label: {
-    fontSize: 14, color: '#F97316',
-    fontWeight: '500', textAlign: 'center',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 16,
-  },
-  viewAllText: {
-    color: '#F97316',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  listItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  listTitle: {
-    color: '#0F172A',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  listSubtitle: {
-    color: '#0F172A',
-    fontSize: 13,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  badgeGreen: { backgroundColor: '#ECFDF5' },
-  badgeRed: { backgroundColor: '#FEF2F2' },
-  badgeOrange: { backgroundColor: '#FFFBEB' },
-  textGreen: { color: '#059669', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
-  textRed: { color: '#DC2626', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
-  textOrange: { color: '#D97706', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  horizontalScroll: {
-    marginHorizontal: -16,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  emptyCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
     padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderStyle: 'dashed',
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    marginBottom: 24,
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  emptyText: {
-    color: '#64748B',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  activityModernCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  activityDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#3B82F6',
-    marginTop: 4,
-    marginRight: 12,
-  },
-  activityMessage: {
-    color: '#0F172A',
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  activityDate: {
-    color: '#64748B',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  leaveCard: {
+  welcomeHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  leaveApproved: { borderLeftColor: '#10B981' },
-  leavePending: { borderLeftColor: '#F59E0B' },
-  leaveRejected: { borderLeftColor: '#EF4444' },
-  leaveContent: {
-    flex: 1,
-  },
-  leaveType: {
-    color: '#0F172A',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  birthdayModernCard: {
-    backgroundColor: '#FDF2F8',
-    padding: 20,
-    borderRadius: 24,
-    marginRight: 16,
-    width: 140,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FCE7F3',
-  },
-  birthdayIconWrapper: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#FBCFE8',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  birthdayModernName: {
-    color: '#831843',
-    fontSize: 15,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  birthdayModernDate: {
-    color: '#BE185D',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  taskModernItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  taskCompletedItem: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#F1F5F9',
-  },
-  taskIconWrapper: {
-    marginRight: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  taskTitle: {
-    color: '#0F172A',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  taskTitleCompleted: {
-    color: '#94A3B8',
-    textDecorationLine: 'line-through',
-  },
-  taskSubtitle: {
-    color: '#64748B',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  weeklyCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 16,
-    marginRight: 12,
-    width: 100,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  weeklyDay: {
-    color: '#0F172A',
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  weeklyDate: {
-    color: '#0F172A',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  weeklyStatsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#0F172A',
-  },
-  weeklyStat: {
-    alignItems: 'center',
-  },
-  weeklyStatValueGreen: {
-    color: '#0F172A',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  weeklyStatValueRed: {
-    color: '#0F172A',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  weeklyStatLabel: {
-    color: '#0F172A',
-    fontSize: 10,
-    marginTop: 2,
-  },
+  greeting: { fontSize: 18, color: '#FFEDD5', fontWeight: '500', marginBottom: 4 },
+  userName: { fontSize: 28, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5 },
+  headerAvatar: { width: 60, height: 60, borderRadius: 30, borderWidth: 3, borderColor: '#FFFFFF' },
+  headerAvatarPlaceholder: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
+  headerAvatarText: { color: '#F97316', fontSize: 22, fontWeight: '800' },
+
+  sectionTitle: { fontSize: 20, fontWeight: '700', color: '#0F172A', marginBottom: 16, marginLeft: 16 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 12, paddingHorizontal: 16 },
+  viewAllText: { color: '#F97316', fontSize: 16, fontWeight: '600' },
+
+  quickLinksContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', paddingHorizontal: 8, marginBottom: 8 },
+  quickLinkModernBox: { width: '33.33%', alignItems: 'center', marginBottom: 20 },
+  quickLinkModernIconWrapper: { width: 56, height: 56, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3 },
+  quickLinkModernText: { color: '#475569', fontSize: 15, fontWeight: '600' },
+
+  premiumGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 16 },
+  premiumCard: { width: '48%', borderRadius: 24, padding: 20, marginBottom: 16, position: 'relative', overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 6 },
+  premiumCardHeader: { marginBottom: 12 },
+  premiumIconContainer: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.25)', justifyContent: 'center', alignItems: 'center' },
+  premiumCardValue: { fontSize: 34, fontWeight: '800', color: '#FFFFFF', marginBottom: 4 },
+  premiumCardLabel: { fontSize: 16, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
+  decorativeCircleTop: { position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.1)' },
+  decorativeCircleBottom: { position: 'absolute', bottom: -30, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.1)' },
+
+  horizontalScroll: { marginHorizontal: 0, paddingHorizontal: 16, paddingBottom: 16 },
+  
+  weeklyModernCard: { backgroundColor: '#FFFFFF', padding: 16, borderRadius: 20, marginRight: 12, width: 100, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  weeklyDay: { color: '#64748B', fontSize: 15, fontWeight: '600', marginBottom: 4 },
+  weeklyDate: { color: '#0F172A', fontSize: 26, fontWeight: '800', marginBottom: 12 },
+  weeklyStatsRow: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  weeklyStat: { alignItems: 'center' },
+  weeklyStatValue: { fontSize: 18, fontWeight: '800' },
+  weeklyStatLabel: { color: '#94A3B8', fontSize: 13, fontWeight: '600', marginTop: 2 },
+
+  leaveModernCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 20, marginHorizontal: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, overflow: 'hidden' },
+  leaveColorBar: { width: 6, height: '100%' },
+  leaveContent: { flex: 1, paddingVertical: 16, paddingLeft: 16 },
+  leaveType: { color: '#0F172A', fontSize: 18, fontWeight: '700' },
+  
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, marginRight: 16 },
+  badgeGreen: { backgroundColor: '#D1FAE5' },
+  badgeRed: { backgroundColor: '#FEE2E2' },
+  badgeOrange: { backgroundColor: '#FEF3C7' },
+  textGreen: { color: '#059669' },
+  textRed: { color: '#DC2626' },
+  textOrange: { color: '#D97706' },
+  statusText: { fontSize: 15, fontWeight: '700', textTransform: 'uppercase' },
+
+  birthdayModernCard: { padding: 20, borderRadius: 24, marginRight: 16, width: 150, alignItems: 'center', shadowColor: '#EC4899', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 3 },
+  birthdayIconWrapper: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.8)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  birthdayModernName: { color: '#831843', fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 4 },
+  birthdayModernDate: { color: '#BE185D', fontSize: 15, fontWeight: '700' },
+
+  activityModernCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 20, marginHorizontal: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  activityDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#F97316', marginTop: 4, marginRight: 12 },
+  activityMessage: { color: '#0F172A', fontSize: 17, fontWeight: '600', marginBottom: 4 },
+  activityDate: { color: '#64748B', fontSize: 14, fontWeight: '500' },
+
+  emptyCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, marginHorizontal: 16, alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed' },
+  emptyText: { color: '#94A3B8', fontSize: 16, fontWeight: '600' },
 });
 
 export default DashboardScreen;

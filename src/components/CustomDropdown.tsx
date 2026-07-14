@@ -34,17 +34,18 @@ export default function CustomDropdown({ label, value, options, onSelect, icon, 
           placeholder={placeholder}
           editable={false}
           textColor="#0F172A"
-          dense={true}
           left={icon ? <TextInput.Icon icon={icon} /> : undefined}
           right={<TextInput.Icon icon={() => <ChevronDown color="#64748B" size={20} />} />}
           theme={{
+            roundness: 12,
             colors: {
-              background: '#FFFFFF',
+              background: '#F8FAFC',
               onSurfaceVariant: '#64748B',
               primary: '#F97316',
+              outline: '#E2E8F0',
             },
           }}
-          style={[{ fontSize: 13 }, styles.input]}
+          style={[{ fontSize: 17, height: 54 }, styles.input]}
         />
         <TouchableOpacity 
           activeOpacity={0.8} 
@@ -129,7 +130,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#0F172A',
   },
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF7ED',
   },
   optionText: {
-    fontSize: 15,
+    fontSize: 17,
     color: '#334155',
   },
   optionTextSelected: {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Text, ActivityIndicator, TouchableOpacity, Alert, Platform } from 'react-native';
+import { RefreshControl } from "react-native";
 import { Clock, CheckCircle2, XCircle, AlertCircle, LogIn, LogOut, CalendarIcon } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../redux/store';
@@ -8,6 +9,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import api from '../services/api';
 
 export default function MyAttendanceScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const dispatch = useDispatch<AppDispatch>();
   const { records, loading } = useSelector((state: RootState) => state.attendance);
 
@@ -45,7 +55,7 @@ export default function MyAttendanceScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}>
         
         {/* Today Status Card */}
         <LinearGradient 
@@ -111,16 +121,19 @@ export default function MyAttendanceScreen() {
           }
 
           return (
-            <View key={item.id || item._id || index} style={styles.listItem}>
+            <View key={`${item.id || item._id || ''}-${index}`} style={styles.listItem}>
               <View style={styles.listLeft}>
                 <View style={styles.dateBox}>
                   <Text style={styles.dateBoxDay}>{item.date ? new Date(item.date).getDate() : '--'}</Text>
                   <Text style={styles.dateBoxMonth}>{item.date ? new Date(item.date).toLocaleString('default', { month: 'short' }) : '--'}</Text>
                 </View>
-                <View>
+                <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={styles.listTitle}>{item.date ? new Date(item.date).toLocaleDateString('en-US', {weekday: 'long'}) : 'Day'}</Text>
                   <View style={styles.timeRow}>
-                    <Text style={styles.listSubtitle}>1st: {item.checkIn || '-'} - {item.checkOut || '-'} {item.checkIn2 ? `| 2nd: ${item.checkIn2} - ${item.checkOut2 || '-'}` : ''}</Text>
+                    <Text style={styles.listSubtitle} numberOfLines={1}>1st: {item.checkIn || '-'} - {item.checkOut || '-'}</Text>
+                    {item.checkIn2 ? (
+                      <Text style={styles.listSubtitle} numberOfLines={1}>2nd: {item.checkIn2} - {item.checkOut2 || '-'}</Text>
+                    ) : null}
                   </View>
                 </View>
               </View>
@@ -174,7 +187,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     color: 'rgba(255,255,255,0.8)',
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '600',
     marginBottom: 4,
     textTransform: 'uppercase',
@@ -182,7 +195,7 @@ const styles = StyleSheet.create({
   },
   timeText: {
     color: '#FFFFFF',
-    fontSize: 40,
+    fontSize: 42,
     fontWeight: '800',
     marginBottom: 24,
   },
@@ -202,14 +215,14 @@ const styles = StyleSheet.create({
   },
   todayMetricLabel: {
     color: 'rgba(255,255,255,0.7)',
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '600',
     marginBottom: 4,
     textTransform: 'uppercase',
   },
   todayMetricValue: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '700',
   },
   todayMetricDivider: {
@@ -240,11 +253,11 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 16,
@@ -264,13 +277,13 @@ const styles = StyleSheet.create({
     ...shadowStyle,
   },
   summaryValue: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '800',
     color: '#10B981',
     marginBottom: 4,
   },
   summaryLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#64748B',
     fontWeight: '600',
   },
@@ -287,6 +300,7 @@ const styles = StyleSheet.create({
   listLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   dateBox: {
     width: 48,
@@ -300,29 +314,29 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
   },
   dateBoxDay: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '800',
     color: '#0F172A',
   },
   dateBoxMonth: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '700',
     color: '#64748B',
     textTransform: 'uppercase',
   },
   listTitle: {
     color: '#0F172A',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     marginBottom: 4,
   },
   timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    justifyContent: 'center',
   },
   listSubtitle: {
     color: '#64748B',
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '500',
   },
   listRight: {
@@ -340,7 +354,7 @@ const styles = StyleSheet.create({
   textRed: { color: '#DC2626' },
   textOrange: { color: '#D97706' },
   statusText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -353,6 +367,6 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 12,
     color: '#64748B',
-    fontSize: 15,
+    fontSize: 17,
   }
 });

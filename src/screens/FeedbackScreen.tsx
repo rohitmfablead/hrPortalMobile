@@ -114,7 +114,7 @@ export default function FeedbackScreen() {
         }}
         ListEmptyComponent={
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 60 }}>
-            <Text style={{ color: '#64748B', fontSize: 16, fontWeight: '500' }}>No {activeTab.toLowerCase()} available</Text>
+            <Text style={{ color: '#64748B', fontSize: 18, fontWeight: '500' }}>No {activeTab.toLowerCase()} available</Text>
           </View>
         }
       />
@@ -165,14 +165,14 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#0F172A',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     flex: 1,
     marginRight: 8,
   },
   message: {
     color: '#475569',
-    fontSize: 14,
+    fontSize: 16,
     lineHeight: 20,
   },
   statusBadge: {
@@ -183,9 +183,9 @@ const styles = StyleSheet.create({
   badgeGreen: { backgroundColor: '#ECFDF5' },
   badgeRed: { backgroundColor: '#FEF2F2' },
   badgeOrange: { backgroundColor: '#FFFBEB' },
-  textGreen: { color: '#059669', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
-  textRed: { color: '#DC2626', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
-  textOrange: { color: '#D97706', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+  textGreen: { color: '#059669', fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },
+  textRed: { color: '#DC2626', fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },
+  textOrange: { color: '#D97706', fontSize: 13, fontWeight: '700', textTransform: 'uppercase' },
   tabContainer: {
     flexDirection: 'row',
     marginBottom: 16,
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#64748B',
   },

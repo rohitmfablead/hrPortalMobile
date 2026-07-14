@@ -95,8 +95,21 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
     }
   };
 
-  const handleSimulateMatch = () => {
-    Alert.alert('Info', 'Please upload a photo using the button below. Live camera scan API is not fully linked here yet.');
+  const cameraRef = React.useRef<any>(null);
+
+  const handleLiveCapture = async () => {
+    if (cameraRef.current) {
+      try {
+        setIsVerifying(true);
+        const photo = await cameraRef.current.takePictureAsync({ quality: 0.5 });
+        setUploadedImage(photo.uri);
+        handleVerifyFace(photo.uri);
+      } catch (error) {
+        setIsVerifying(false);
+        console.log('Error capturing live photo: ', error);
+        Alert.alert('Error', 'Failed to capture photo from camera');
+      }
+    }
   };
 
   const handleUploadPhoto = async () => {
@@ -141,8 +154,8 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
           </View>
 
           {/* User Info Card */}
-          <View style={styles.userInfoCard}>
-            <View style={styles.avatarContainer}>
+          <View style={[styles.userInfoCard, { backgroundColor: '#F8FAFC' }]}>
+            <View style={[styles.avatarContainer, { backgroundColor: '#FFF7ED' }]}>
               <User color="#F97316" size={24} />
             </View>
             <View>
@@ -165,7 +178,7 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
                   ) : isMatched ? (
                     <View style={styles.verifyingContainer}>
                       <User color="#10B981" size={48} />
-                      <Text style={[styles.cameraText, { color: '#10B981', fontWeight: 'bold', fontSize: 18, marginTop: 12 }]}>
+                      <Text style={[styles.cameraText, { color: '#10B981', fontWeight: 'bold', fontSize: 20, marginTop: 12 }]}>
                         Face Matched! {matchPercentage ? `(${matchPercentage}%)` : ''}
                       </Text>
                     </View>
@@ -179,23 +192,23 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
               </View>
             ) : isFaceRegistered === false ? (
               <View style={styles.cameraFallback}>
-                <Text style={[styles.fallbackText, { textAlign: 'center', marginHorizontal: 20 }]}>
+                <Text style={[styles.fallbackText, { textAlign: 'center', marginHorizontal: 20, color: '#FFFFFF' }]}>
                   Your face is not registered in the system. Please contact HR or register your face in Profile Settings before checking in.
                 </Text>
               </View>
             ) : !permission?.granted ? (
               <View style={styles.cameraFallback}>
-                <Text style={styles.fallbackText}>Camera permission is required.</Text>
+                <Text style={[styles.fallbackText, { color: '#FFFFFF' }]}>Camera permission is required.</Text>
                 <TouchableOpacity style={styles.permissionBtn} onPress={requestPermission}>
                   <Text style={styles.permissionBtnText}>Grant Permission</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.cameraWrapper}>
-                <CameraView style={styles.camera} facing="front" />
+                <CameraView style={styles.camera} facing="front" ref={cameraRef} />
 
                 {/* Overlay inside camera */}
-                <View style={styles.cameraOverlay}>
+                <View style={[styles.cameraOverlay, { backgroundColor: isVerifying || isMatched ? 'rgba(0,0,0,0.5)' : 'transparent' }]}>
                   {isVerifying ? (
                     <View style={styles.verifyingContainer}>
                       <ActivityIndicator size="large" color="#F97316" />
@@ -204,15 +217,17 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
                   ) : isMatched ? (
                     <View style={styles.verifyingContainer}>
                       <User color="#10B981" size={48} />
-                      <Text style={[styles.cameraText, { color: '#10B981', fontWeight: 'bold', fontSize: 18, marginTop: 12 }]}>
+                      <Text style={[styles.cameraText, { color: '#10B981', fontWeight: 'bold', fontSize: 20, marginTop: 12 }]}>
                         Face Matched! {matchPercentage ? `(${matchPercentage}%)` : ''}
                       </Text>
                     </View>
                   ) : (
-                    <TouchableOpacity style={styles.simulateBtn} onPress={handleSimulateMatch}>
-                      <CameraIcon color="#F97316" size={28} />
-                      <Text style={styles.cameraText}>Tap to Scan Face</Text>
-                    </TouchableOpacity>
+                    <View style={styles.captureOverlay}>
+                      <View style={styles.faceGuideFrame} />
+                      <TouchableOpacity style={styles.simulateBtn} onPress={handleLiveCapture}>
+                        <View style={styles.captureBtnInner} />
+                      </TouchableOpacity>
+                    </View>
                   )}
                 </View>
               </View>
@@ -239,7 +254,7 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
               }}
             >
               <CheckCircle color="#FFFFFF" size={20} style={{ marginRight: 8 }} />
-              <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '700' }}>Confirm & Mark Attendance</Text>
+              <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>Confirm & Mark Attendance</Text>
             </TouchableOpacity>
           ) : (
             <View style={styles.footer}>
@@ -296,7 +311,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: '#0F172A',
     marginLeft: 8,
@@ -322,12 +337,12 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   userName: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '600',
     color: '#0F172A',
   },
   userRole: {
-    fontSize: 13,
+    fontSize: 15,
     color: '#0F172A',
     textTransform: 'capitalize',
   },
@@ -369,11 +384,37 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+  },
+  captureOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 30,
+  },
+  faceGuideFrame: {
+    width: 220,
+    height: 220,
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.5)',
+    borderRadius: 110,
+    borderStyle: 'dashed',
+    marginTop: 20,
   },
   simulateBtn: {
     alignItems: 'center',
-    padding: 20,
+    justifyContent: 'center',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+  },
+  captureBtnInner: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: '#FFFFFF',
   },
   verifyingContainer: {
     alignItems: 'center',
@@ -384,7 +425,7 @@ const styles = StyleSheet.create({
   cameraText: {
     color: '#0F172A',
     marginTop: 12,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
   },
   footer: {
@@ -407,6 +448,6 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     fontWeight: '600',
     marginLeft: 8,
-    fontSize: 14,
+    fontSize: 16,
   },
 });

@@ -3,11 +3,21 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store'
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, DeviceEventEmitter, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { RefreshControl } from "react-native";
 import { Star, Award, Target, Briefcase, Calendar, CheckCircle2, ChevronRight, BarChart2, TrendingUp } from 'lucide-react-native';
 import api from '../services/api';
 import AddPerformanceModal from '../components/AddPerformanceModal';
 
 export default function PerformancesScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const { user } = useSelector((state: RootState) => state.auth);
   const isAdminOrHR = user?.role?.toLowerCase() === 'admin' || user?.role?.toLowerCase() === 'hr';
   const [localPerformances, setLocalPerformances] = useState<any[]>([]);
@@ -59,6 +69,7 @@ export default function PerformancesScreen() {
         </View>
       ) : (
         <FlatList
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
         data={localPerformances}
         keyExtractor={(item) => item.id || item._id}
         contentContainerStyle={styles.listContainer}
@@ -234,7 +245,7 @@ const styles = StyleSheet.create({
   },
   avatarText: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     letterSpacing: 1,
   },
@@ -244,7 +255,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#0F172A',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     marginBottom: 4,
   },
@@ -254,7 +265,7 @@ const styles = StyleSheet.create({
   },
   roleText: {
     color: '#64748B',
-    fontSize: 13,
+    fontSize: 15,
     marginLeft: 6,
     fontWeight: '500',
   },
@@ -266,7 +277,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   ratingScore: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '800',
     marginLeft: 4,
   },
@@ -288,14 +299,14 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     color: '#64748B',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '500',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   statusValue: {
     color: '#0F172A',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
     marginTop: 2,
   },
@@ -324,7 +335,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: '#0F172A',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     marginLeft: 8,
   },
@@ -335,12 +346,12 @@ const styles = StyleSheet.create({
   },
   goalsText: {
     color: '#475569',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
   },
   goalsPercent: {
     color: '#3B82F6',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '800',
   },
   progressBarBg: {
@@ -369,13 +380,13 @@ const styles = StyleSheet.create({
   },
   skillName: {
     color: '#334155',
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     flex: 1,
   },
   skillScore: {
     color: '#10B981',
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '700',
     marginLeft: 4,
   },
@@ -389,7 +400,7 @@ const styles = StyleSheet.create({
   },
   achievementText: {
     color: '#9A3412',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '500',
     lineHeight: 20,
     marginLeft: 10,
@@ -412,13 +423,13 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     color: '#0F172A',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     marginBottom: 8,
   },
   emptyDesc: {
     color: '#64748B',
-    fontSize: 14,
+    fontSize: 16,
     textAlign: 'center',
     maxWidth: 240,
     lineHeight: 20,

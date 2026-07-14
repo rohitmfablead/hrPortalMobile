@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform, SafeAreaView, DeviceEventEmitter } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, SafeAreaView, DeviceEventEmitter, StatusBar } from 'react-native';
 import { Menu, Bell, ArrowLeft, Plus } from 'lucide-react-native';
 import { DrawerHeaderProps } from '@react-navigation/drawer';
 import { useSelector } from 'react-redux';
@@ -22,7 +22,7 @@ function getHeaderTitle(route: any, optionsTitle: string | undefined) {
   return optionsTitle !== undefined ? optionsTitle : route.name;
 }
 
-export default function CustomHeader({ navigation, options, route, showBackButton }: any) {
+export default function CustomHeader({ navigation, options, route, showBackButton, customTitleComponent }: any) {
   const { user } = useSelector((state: RootState) => state.auth);
   const isAdminOrHR = user?.role === 'Admin' || user?.role === 'HR';
 
@@ -62,7 +62,12 @@ export default function CustomHeader({ navigation, options, route, showBackButto
           </TouchableOpacity>
         )}
         
-        <Text style={styles.title}>{title}</Text>
+        
+        {customTitleComponent ? (
+          <View style={{ flex: 1, paddingHorizontal: 8 }}>{customTitleComponent}</View>
+        ) : (
+          <Text style={styles.title}>{title}</Text>
+        )}
         
         <View style={styles.rightContainer}>
           {showAddBtn && (
@@ -86,6 +91,7 @@ export default function CustomHeader({ navigation, options, route, showBackButto
 const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: '#F97316',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   headerContainer: {
     height: 60,
@@ -103,7 +109,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
     letterSpacing: 0.5,
   },

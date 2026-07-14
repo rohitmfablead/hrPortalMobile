@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#64748B',
-    fontSize: 16,
+    fontSize: 18,
   },
   scrollContent: {
     padding: 16,
@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     borderColor: '#DBEAFE',
   },
   avatarText: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
     color: '#3B82F6',
   },
@@ -219,13 +219,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   employeeNameText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 4,
   },
   employeeIdText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#64748B',
     fontWeight: '500',
   },
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
   },
   sectionCard: {
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     })
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#0F172A',
     marginBottom: 16,
@@ -276,13 +276,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoLabel: {
-    fontSize: 13,
+    fontSize: 15,
     color: '#64748B',
     fontWeight: '500',
     marginBottom: 4,
   },
   infoValue: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#334155',
     fontWeight: '600',
   },
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   actionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#0F172A',
     marginBottom: 16,
@@ -320,12 +320,12 @@ const styles = StyleSheet.create({
   },
   rejectBtnText: {
     color: '#DC2626',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
   },
   approveBtnText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
   },
 });

@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store'
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, DeviceEventEmitter, LayoutAnimation, Platform, UIManager, ActivityIndicator, Alert } from 'react-native';
+import { RefreshControl } from "react-native";
 import { BookOpen, ChevronDown, ChevronUp } from 'lucide-react-native';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -12,6 +13,15 @@ import api from '../services/api';
 import AddRuleModal from '../components/AddRuleModal';
 
 export default function RulesScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const { user } = useSelector((state: RootState) => state.auth);
   const isAdminOrHR = user?.role?.toLowerCase() === 'admin' || user?.role?.toLowerCase() === 'hr';
   const [localRules, setLocalRules] = useState<any[]>([]);
@@ -59,6 +69,7 @@ export default function RulesScreen() {
         <ActivityIndicator size="large" color="#3B82F6" style={{ marginTop: 20 }} />
       ) : (
         <FlatList
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
         data={localRules}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
@@ -82,7 +93,7 @@ export default function RulesScreen() {
         }}
         ListEmptyComponent={
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 60 }}>
-            <Text style={{ color: '#64748B', fontSize: 16, fontWeight: '500' }}>No rules available</Text>
+            <Text style={{ color: '#64748B', fontSize: 18, fontWeight: '500' }}>No rules available</Text>
           </View>
         }
       />
@@ -127,7 +138,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#0F172A',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     flex: 1,
   },
@@ -140,7 +151,7 @@ const styles = StyleSheet.create({
   },
   paragraph: {
     color: '#475569',
-    fontSize: 14,
+    fontSize: 16,
     lineHeight: 22,
   },
 });

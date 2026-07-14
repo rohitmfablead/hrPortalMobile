@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Alert, ActivityIndicator, DeviceEventEmitter, Dimensions, Platform, Modal, TextInput } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Text, Alert, ActivityIndicator, DeviceEventEmitter, Dimensions, Platform, Modal, TextInput, Image } from 'react-native';
+import { RefreshControl } from "react-native";
 import { useNavigation } from '@react-navigation/native';
 import { Calendar } from 'react-native-calendars';
 import { Calendar as CalendarIcon, Clock, CheckCircle2, XCircle, AlertCircle, TrendingUp, Search, Filter, Users, Eye, Edit2, ChevronDown } from 'lucide-react-native';
@@ -10,8 +11,6 @@ import { RootState, AppDispatch } from '../redux/store';
 import { fetchAllAttendance, updateAttendance } from '../redux/slices/attendanceSlice';
 import AddAttendanceModal from '../components/AddAttendanceModal';
 import EditAttendanceModal from '../components/EditAttendanceModal';
-
-const { width } = Dimensions.get('window');
 
 const generateMarkedDates = (records: any[]) => {
   const marked: any = {};
@@ -36,6 +35,15 @@ const generateMarkedDates = (records: any[]) => {
 };
 
 export default function AttendanceScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const dispatch = useDispatch<AppDispatch>();
   const navigation = useNavigation<any>();
   const { allRecords, loading } = useSelector((state: RootState) => state.attendance);
@@ -133,7 +141,7 @@ export default function AttendanceScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}>
 
         {/* Background Gradient Header */}
         <LinearGradient
@@ -215,7 +223,7 @@ export default function AttendanceScreen() {
           <View style={styles.listHeaderRow}>
             <Text style={styles.sectionTitle}>Employee Records</Text>
             <TouchableOpacity onPress={() => setCalendarVisible(true)} style={styles.viewCalendarBtn}>
-              <CalendarIcon color="#0F172A" size={14} />
+              <CalendarIcon color="#F97316" size={14} />
               <Text style={styles.viewCalendarBtnText}>Calendar</Text>
             </TouchableOpacity>
           </View>
@@ -235,7 +243,11 @@ export default function AttendanceScreen() {
             return (
               <TouchableOpacity key={item.id || item._id || index} style={styles.listItem} onPress={() => navigation.navigate('AttendanceDetails', { employee: item })}>
                 <View style={styles.avatarContainer}>
-                  <Text style={styles.avatarText}>{(item.employeeName || 'E')[0].toUpperCase()}</Text>
+                  {(item.profilePicture?.url || item.employee?.profilePicture?.url) ? (
+                    <Image source={{ uri: item.profilePicture?.url || item.employee?.profilePicture?.url }} style={styles.avatarImage} />
+                  ) : (
+                    <Text style={styles.avatarText}>{(item.employeeName || 'E')[0].toUpperCase()}</Text>
+                  )}
                 </View>
                 <View style={styles.listContent}>
                   <View style={styles.listContentTop}>
@@ -246,8 +258,12 @@ export default function AttendanceScreen() {
                   </View>
                   <Text style={styles.listSubtitleText}>{item.department || item.employeeId || 'Staff'}</Text>
                   <View style={styles.timeDetails}>
-                    <Text style={styles.timeText}><Text style={styles.timeLabel}>In:</Text> {item.checkIn || '-'}</Text>
-                    <Text style={styles.timeText}><Text style={styles.timeLabel}>Out:</Text> {item.checkOut || '-'}</Text>
+                    <Text style={styles.timeText} numberOfLines={1}>
+                      <Text style={styles.timeLabel}>In:</Text> {item.checkIn || '-'}
+                    </Text>
+                    <Text style={styles.timeText} numberOfLines={1}>
+                      <Text style={styles.timeLabel}>Out:</Text> {item.checkOut || '-'}
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.actionColumn}>
@@ -384,12 +400,12 @@ const styles = StyleSheet.create({
   },
   headerTitleText: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
   },
   headerSubtitleText: {
     color: 'rgba(255,255,255,0.8)',
-    fontSize: 12,
+    fontSize: 14,
     marginTop: 2,
   },
   headerDropdown: {
@@ -404,7 +420,7 @@ const styles = StyleSheet.create({
   headerDropdownText: {
     color: '#FFFFFF',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 16,
   },
   dropdownOverlay: {
     flex: 1,
@@ -433,7 +449,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF7ED',
   },
   dropdownItemText: {
-    fontSize: 15,
+    fontSize: 17,
     color: '#334155',
     fontWeight: '500',
   },
@@ -462,7 +478,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   metricCard: {
-    width: (width - 44) / 2, // 2 columns
+    width: '47%', // responsive 2 columns
     backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 20,
@@ -478,13 +494,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   metricValue: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
     color: '#0F172A',
     marginBottom: 2,
   },
   metricLabel: {
-    fontSize: 13,
+    fontSize: 15,
     color: '#64748B',
     fontWeight: '600',
   },
@@ -504,7 +520,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     marginLeft: 12,
-    fontSize: 15,
+    fontSize: 17,
     color: '#0F172A',
     outlineStyle: 'none',
   },
@@ -528,7 +544,7 @@ const styles = StyleSheet.create({
     borderColor: '#F97316',
   },
   filterChipText: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     color: '#64748B',
   },
@@ -551,7 +567,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
     color: '#0F172A',
   },
@@ -567,7 +583,7 @@ const styles = StyleSheet.create({
   viewCalendarBtnText: {
     color: '#0F172A',
     fontWeight: '700',
-    fontSize: 13,
+    fontSize: 15,
   },
   calendarModalOverlay: {
     flex: 1,
@@ -588,7 +604,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   calendarModalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: '#0F172A',
   },
@@ -612,9 +628,15 @@ const styles = StyleSheet.create({
     marginRight: 14,
     borderWidth: 1,
     borderColor: '#F1F5F9',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   avatarText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: '#F97316',
   },
@@ -630,14 +652,14 @@ const styles = StyleSheet.create({
   },
   listTitle: {
     color: '#0F172A',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     flex: 1,
     marginRight: 8,
   },
   listSubtitleText: {
     color: '#64748B',
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '500',
     marginBottom: 8,
   },
@@ -666,17 +688,17 @@ const styles = StyleSheet.create({
   textRed: { color: '#DC2626' },
   textOrange: { color: '#D97706' },
   statusText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
   timeDetails: {
-    flexDirection: 'row',
-    gap: 8,
+    flexDirection: 'column',
+    gap: 4,
   },
   timeText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#0F172A',
     fontWeight: '600',
   },
@@ -696,20 +718,20 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#FFF7ED',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
   emptyTitle: {
     color: '#0F172A',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     marginBottom: 8,
   },
   emptySubtitle: {
     color: '#64748B',
-    fontSize: 14,
+    fontSize: 16,
     textAlign: 'center',
     paddingHorizontal: 40,
   }

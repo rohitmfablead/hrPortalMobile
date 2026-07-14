@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#0F172A',
   },
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: '#0F172A',
-    fontSize: 14,
+    fontSize: 16,
     marginBottom: 8,
     fontWeight: '500',
   },
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     color: '#0F172A',
-    fontSize: 15,
+    fontSize: 17,
   },
   statusButtonsContainer: {
     flexDirection: 'row',
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   statusBtnText: {
     color: '#0F172A',
     fontWeight: '500',
-    fontSize: 14,
+    fontSize: 16,
   },
   statusBtnTextActive: {
     color: '#0F172A',
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   saveBtnText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
 });

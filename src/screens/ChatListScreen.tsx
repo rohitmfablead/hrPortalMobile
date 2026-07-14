@@ -149,12 +149,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#0F172A',
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#64748B',
     marginTop: 4,
   },
@@ -188,13 +188,13 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   userName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: '#1E293B',
     flex: 1,
   },
   userRole: {
-    fontSize: 13,
+    fontSize: 15,
     color: '#64748B',
   },
   badge: {
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: '#FFF',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 'bold',
   },
   iconWrapper: {
@@ -228,6 +228,6 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: 16,
     color: '#64748B',
-    fontSize: 16,
+    fontSize: 18,
   },
 });

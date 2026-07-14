@@ -2,6 +2,7 @@ import CustomTextInput from '../components/CustomTextInput';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, StyleSheet, FlatList, ActivityIndicator, Alert, DeviceEventEmitter } from 'react-native';
+import { RefreshControl } from "react-native";
 import { Text, Card, Modal, Portal, Button, IconButton } from 'react-native-paper';
 import { Pencil, Trash2 } from 'lucide-react-native';
 import { useDispatch, useSelector } from 'react-redux';
@@ -10,6 +11,15 @@ import { fetchLeaveTypes } from '../redux/slices/masterSlice';
 import * as masterService from '../services/masterService';
 
 export default function LeaveTypesScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const dispatch = useDispatch<AppDispatch>();
   const { leaveTypes, loading } = useSelector((state: RootState) => state.master);
   
@@ -21,7 +31,7 @@ export default function LeaveTypesScreen() {
 
   useEffect(() => {
     dispatch(fetchLeaveTypes());
-  }, [dispatch]);
+  }, [dispatch, refreshCounter]);
 
   useFocusEffect(
     useCallback(() => {
@@ -102,6 +112,7 @@ export default function LeaveTypesScreen() {
         <View style={styles.center}><ActivityIndicator size="large" color="#F97316" /></View>
       ) : (
         <FlatList
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
           data={leaveTypes}
           keyExtractor={(item) => item._id}
           renderItem={renderItem}

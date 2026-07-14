@@ -3,12 +3,22 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store'
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, DeviceEventEmitter, ActivityIndicator, Alert } from 'react-native';
+import { RefreshControl } from "react-native";
 import { FileText, Download, Eye } from 'lucide-react-native';
 import api from '../services/api';
 import { mockPayslips } from '../mockData/mockData';
 import AddPayslipModal from '../components/AddPayslipModal';
 
 export default function MyPayslipScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const { user } = useSelector((state: RootState) => state.auth);
   const isAdminOrHR = user?.role?.toLowerCase() === 'admin' || user?.role?.toLowerCase() === 'hr';
   const [localPayslips, setLocalPayslips] = useState<any[]>([]);
@@ -54,6 +64,7 @@ export default function MyPayslipScreen() {
         <ActivityIndicator size="large" color="#3B82F6" style={{ marginTop: 20 }} />
       ) : (
         <FlatList
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
         data={localPayslips}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
@@ -95,7 +106,7 @@ export default function MyPayslipScreen() {
         }}
         ListEmptyComponent={
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 60 }}>
-            <Text style={{ color: '#64748B', fontSize: 16, fontWeight: '500' }}>No payslips available</Text>
+            <Text style={{ color: '#64748B', fontSize: 18, fontWeight: '500' }}>No payslips available</Text>
           </View>
         }
       />
@@ -142,12 +153,12 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#0F172A',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
   },
   subtitle: {
     color: '#64748B',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '500',
   },
   statusBadge: {
@@ -157,21 +168,21 @@ const styles = StyleSheet.create({
   },
   badgeGreen: { backgroundColor: '#ECFDF5' },
   badgeOrange: { backgroundColor: '#FFFBEB' },
-  textGreen: { color: '#059669', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
-  textOrange: { color: '#D97706', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
+  textGreen: { color: '#059669', fontSize: 14, fontWeight: '700', textTransform: 'uppercase' },
+  textOrange: { color: '#D97706', fontSize: 14, fontWeight: '700', textTransform: 'uppercase' },
   cardBody: {
     padding: 16,
     alignItems: 'flex-start',
   },
   amountLabel: {
     color: '#64748B',
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '600',
     marginBottom: 4,
   },
   amountValue: {
     color: '#0F172A',
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '800',
   },
   cardFooter: {
@@ -189,7 +200,7 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     color: '#64748B',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
   },
 });

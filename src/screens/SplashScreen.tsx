@@ -127,14 +127,14 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#0F172A',
-    fontSize: 36,
+    fontSize: 38,
     fontWeight: '900',
     letterSpacing: 4,
     marginBottom: 8,
   },
   subtitle: {
     color: '#0F172A',
-    fontSize: 14,
+    fontSize: 16,
     letterSpacing: 1,
     fontWeight: '500',
     textTransform: 'uppercase',
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   loaderText: {
     color: '#0F172A',
     marginLeft: 12,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.5,
   },

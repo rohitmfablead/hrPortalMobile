@@ -1,18 +1,35 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Platform, ActivityIndicator } from 'react-native';
+import { RefreshControl } from "react-native";
 import { Card, Text } from 'react-native-paper';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../redux/store';
 import { fetchDashboardData } from '../redux/slices/dashboardSlice';
-import { CalendarCheck, CalendarOff, Clock, TrendingUp, LogIn, LogOut, Cake, CheckCircle, Palmtree } from 'lucide-react-native';
+import { CalendarCheck, CalendarOff, Clock, TrendingUp, LogIn, LogOut, Cake, CheckCircle, Palmtree, BookOpen, Megaphone, MessageSquare, LineChart, Bell } from 'lucide-react-native';
 import { markManualAttendance } from '../redux/slices/attendanceSlice';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { mockAttendance, mockLeaves, mockBirthdays, mockTasks } from '../mockData/mockData';
 import FaceCheckInModal from '../components/FaceCheckInModal';
 import api from '../services/api';
 import Toast from 'react-native-toast-message';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const getAvatarUri = (avatarPath: string | undefined | null) => {
+  if (!avatarPath) return null;
+  if (avatarPath.startsWith('http')) return avatarPath;
+  const normalizedPath = avatarPath.replace(/\\/g, '/');
+  return `https://hrback-production-61ba.up.railway.app${normalizedPath.startsWith('/') ? '' : '/'}${normalizedPath}`;
+};
 
 export default function MyDashboardScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const { user } = useSelector((state: RootState) => state.auth);
   const { data: stats, loading: dashboardLoading } = useSelector((state: RootState) => state.dashboard);
   const dispatch = useDispatch<AppDispatch>();
@@ -24,6 +41,7 @@ export default function MyDashboardScreen() {
   const [statusLoading, setStatusLoading] = React.useState(true);
   const [isFaceModalVisible, setIsFaceModalVisible] = React.useState(false);
   const [todayShift, setTodayShift] = React.useState<any>(null);
+  const [checkoutLoading, setCheckoutLoading] = React.useState(false);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -64,30 +82,36 @@ export default function MyDashboardScreen() {
   const handleAttendance = () => {
     const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     if (isCheckedIn2 && !isCheckedOut2) {
-      // Check Out 2nd time
+      setCheckoutLoading(true);
       const payload = { checkIn2: todayShift?.checkIn2 || '', checkOut2: time, employeeId: user?.id };
       dispatch(markManualAttendance(payload))
         .unwrap()
         .then(() => {
           Toast.show({ type: 'success', text1: 'Success', text2: `Checked out successfully at ${time}` });
           setIsCheckedOut2(true);
+          setCheckoutLoading(false);
         })
-        .catch((err) => Toast.show({ type: 'error', text1: 'Error', text2: err?.message || err }));
+        .catch((err) => {
+          Toast.show({ type: 'error', text1: 'Error', text2: err?.message || err });
+          setCheckoutLoading(false);
+        });
     } else if (isCheckedOut && !isCheckedIn2) {
-      // Open Face Recognition Modal for Shift 2
       setIsFaceModalVisible(true);
     } else if (isCheckedIn && !isCheckedOut) {
-      // Check Out 1st time
+      setCheckoutLoading(true);
       const payload = { checkIn: todayShift?.checkIn || '', checkOut: time, employeeId: user?.id };
       dispatch(markManualAttendance(payload))
         .unwrap()
         .then(() => {
           Toast.show({ type: 'success', text1: 'Success', text2: `Checked out successfully at ${time}` });
           setIsCheckedOut(true);
+          setCheckoutLoading(false);
         })
-        .catch((err) => Toast.show({ type: 'error', text1: 'Error', text2: err?.message || err }));
+        .catch((err) => {
+          Toast.show({ type: 'error', text1: 'Error', text2: err?.message || err });
+          setCheckoutLoading(false);
+        });
     } else {
-      // Open Face Recognition Modal for Shift 1
       setIsFaceModalVisible(true);
     }
   };
@@ -116,32 +140,34 @@ export default function MyDashboardScreen() {
       .catch((err) => Toast.show({ type: 'error', text1: 'Error', text2: err?.message || err }));
   };
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+  const avatarUri = getAvatarUri(user?.avatar);
 
-      {/* Welcome Section */}
-      <View style={styles.welcomeSection}>
-        {user?.avatar ? (
-          <Image source={{ uri: user.avatar }} style={styles.headerAvatar} />
-        ) : (
-          <View style={styles.headerAvatarPlaceholder}>
-            <Text style={styles.headerAvatarText}>
-              {user?.name ? user.name.substring(0, 2).toUpperCase() : 'HR'}
-            </Text>
-          </View>
-        )}
-        <View style={{ marginLeft: 16, flex: 1 }}>
-          <Text style={styles.greeting}>{getGreeting()}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}>
+
+      {/* Welcome Section - Premium Header with Gradient */}
+      <LinearGradient colors={['#F97316', '#EA580C']} style={styles.welcomeSection}>
+        <View style={styles.welcomeHeaderRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.greeting}>{getGreeting()}</Text>
             <Text style={styles.userName}>{user?.name || 'Employee'} 👋</Text>
           </View>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.headerAvatar} />
+          ) : (
+            <View style={styles.headerAvatarPlaceholder}>
+              <Text style={styles.headerAvatarText}>
+                {user?.name ? user.name.substring(0, 2).toUpperCase() : 'HR'}
+              </Text>
+            </View>
+          )}
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Quick Actions - Only for Employees */}
       {isEmployee && (
-        <View style={{ marginBottom: 24 }}>
-          <View style={[styles.actionsContainer, { marginBottom: 0 }]}>
+        <View style={styles.attendanceSection}>
+          <View style={styles.actionsContainer}>
             <TouchableOpacity
               style={[
                 styles.actionBtn,
@@ -151,10 +177,19 @@ export default function MyDashboardScreen() {
               onPress={isCheckedOut2 ? undefined : handleAttendance}
               disabled={isCheckedOut2 || statusLoading}
             >
-              {isCheckedOut2 ? <CheckCircle color="#F97316" size={20} /> : (!isCheckedOut ? (isCheckedIn ? <LogOut color="#F97316" size={20} /> : <LogIn color="#F97316" size={20} />) : (isCheckedIn2 ? <LogOut color="#F97316" size={20} /> : <LogIn color="#F97316" size={20} />))}
-              <Text style={styles.actionBtnText}>
-                {statusLoading ? 'Checking...' : (isCheckedOut2 ? 'Completed' : (!isCheckedOut ? (isCheckedIn ? 'Check Out' : 'Check In') : (isCheckedIn2 ? 'Check Out' : 'Check In')))}
-              </Text>
+              <LinearGradient 
+                colors={isCheckedOut2 ? ['#F1F5F9', '#E2E8F0'] : (!isCheckedOut ? (isCheckedIn ? ['#FEE2E2', '#FECACA'] : ['#D1FAE5', '#A7F3D0']) : (isCheckedIn2 ? ['#FEE2E2', '#FECACA'] : ['#D1FAE5', '#A7F3D0']))} 
+                style={styles.actionBtnGradient}
+              >
+                {checkoutLoading ? (
+                  <ActivityIndicator color="#DC2626" size="small" />
+                ) : (
+                  isCheckedOut2 ? <CheckCircle color="#64748B" size={24} /> : (!isCheckedOut ? (isCheckedIn ? <LogOut color="#DC2626" size={24} /> : <LogIn color="#059669" size={24} />) : (isCheckedIn2 ? <LogOut color="#DC2626" size={24} /> : <LogIn color="#059669" size={24} />))
+                )}
+                <Text style={[styles.actionBtnText, { color: isCheckedOut2 ? '#475569' : (!isCheckedOut ? (isCheckedIn ? '#B91C1C' : '#047857') : (isCheckedIn2 ? '#B91C1C' : '#047857')) }]}>
+                  {statusLoading ? 'Checking...' : checkoutLoading ? 'Processing...' : (isCheckedOut2 ? 'Completed' : (!isCheckedOut ? (isCheckedIn ? 'Check Out' : 'Check In') : (isCheckedIn2 ? 'Check Out' : 'Check In')))}
+                </Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
 
@@ -179,27 +214,24 @@ export default function MyDashboardScreen() {
         </View>
       )}
 
+      {/* Quick Links Modern Style */}
       <Text style={styles.sectionTitle}>Quick Links</Text>
       <View style={styles.quickLinksContainer}>
         {[
-          { name: 'Holidays', route: 'Holidays', icon: require('lucide-react-native').Palmtree, color: '#F97316' },
-          { name: 'Rules', route: 'Rules', icon: require('lucide-react-native').BookOpen, color: '#F97316' },
-          { name: 'Announcements', route: 'Announcements', icon: require('lucide-react-native').Megaphone, color: '#F97316' },
-          { name: 'Feedback', route: 'Feedback', icon: require('lucide-react-native').MessageSquare, color: '#F97316' },
-          { name: 'Performance', route: 'Performances', icon: require('lucide-react-native').LineChart, color: '#F97316' },
-          { name: 'Notifications', route: 'Notifications', icon: require('lucide-react-native').Bell, color: '#F97316' },
+          { name: 'Holidays', route: 'Holidays', icon: Palmtree, color: '#10B981', gradient: ['#D1FAE5', '#A7F3D0'] },
+          { name: 'Rules', route: 'Rules', icon: BookOpen, color: '#3B82F6', gradient: ['#DBEAFE', '#BFDBFE'] },
+          { name: 'Announce', route: 'Announcements', icon: Megaphone, color: '#F59E0B', gradient: ['#FEF3C7', '#FDE68A'] },
+          { name: 'Feedback', route: 'Feedback', icon: MessageSquare, color: '#8B5CF6', gradient: ['#EDE9FE', '#DDD6FE'] },
+          { name: 'Performance', route: 'Performances', icon: LineChart, color: '#EC4899', gradient: ['#FCE7F3', '#FBCFE8'] },
+          { name: 'Alerts', route: 'Notifications', icon: Bell, color: '#EF4444', gradient: ['#FEE2E2', '#FECACA'] },
         ].map((link) => {
           const Icon = link.icon;
           return (
-            <TouchableOpacity
-              key={link.name}
-              style={styles.quickLinkBox}
-              onPress={() => navigation.navigate(link.route as never)}
-            >
-              <View style={[styles.quickLinkIconContainer, { backgroundColor: `${link.color}20` }]}>
+            <TouchableOpacity key={link.name} style={styles.quickLinkModernBox} onPress={() => navigation.navigate(link.route as never)}>
+              <LinearGradient colors={link.gradient as any} style={styles.quickLinkModernIconWrapper}>
                 <Icon color={link.color} size={24} />
-              </View>
-              <Text style={styles.quickLinkText}>{link.name}</Text>
+              </LinearGradient>
+              <Text style={styles.quickLinkModernText}>{link.name}</Text>
             </TouchableOpacity>
           );
         })}
@@ -207,59 +239,30 @@ export default function MyDashboardScreen() {
 
       <Text style={styles.sectionTitle}>My Overview</Text>
 
-      {/* Stats Grid */}
-      <View style={styles.grid}>
-        {/* Days Present */}
-        <Card style={[styles.card, styles.cardGreen]}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: '#FFFFFF' }]}>
-                <CalendarCheck color="#F97316" size={24} />
+      {/* Premium Stats Grid */}
+      <View style={styles.premiumGrid}>
+        {[
+          { label: 'Days Present', value: stats?.attendanceThisMonth?.present || 0, icon: CalendarCheck, gradient: ['#10B981', '#059669'] },
+          { label: 'Leaves Taken', value: stats?.attendanceThisMonth?.absent || 0, icon: CalendarOff, gradient: ['#F59E0B', '#D97706'] },
+          { label: 'Late Arrivals', value: stats?.attendanceThisMonth?.late || 0, icon: Clock, gradient: ['#EF4444', '#DC2626'] },
+          { label: 'Productivity', value: `${stats?.attendanceThisMonth?.percentage || 100}%`, icon: TrendingUp, gradient: ['#A855F7', '#7E22CE'] },
+        ].map((stat, idx) => {
+          const Icon = stat.icon;
+          return (
+            <LinearGradient key={idx} colors={stat.gradient as any} style={styles.premiumCard}>
+              <View style={styles.premiumCardHeader}>
+                <View style={styles.premiumIconContainer}>
+                  <Icon color="#FFFFFF" size={24} />
+                </View>
               </View>
-            </View>
-            <Text style={styles.value}>{stats?.attendanceThisMonth?.present || 0}</Text>
-            <Text style={styles.label}>Days Present</Text>
-          </Card.Content>
-        </Card>
-
-        {/* Leaves Taken */}
-        <Card style={[styles.card, styles.cardOrange]}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: 'rgba(249, 115, 22, 0.2)' }]}>
-                <CalendarOff color="#F97316" size={24} />
-              </View>
-            </View>
-            <Text style={styles.value}>{stats?.attendanceThisMonth?.absent || 0}</Text>
-            <Text style={styles.label}>Leaves Taken</Text>
-          </Card.Content>
-        </Card>
-
-        {/* Late Arrivals */}
-        <Card style={[styles.card, styles.cardRed]}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: '#FFFFFF' }]}>
-                <Clock color="#F97316" size={24} />
-              </View>
-            </View>
-            <Text style={styles.value}>{stats?.attendanceThisMonth?.late || 0}</Text>
-            <Text style={styles.label}>Late Arrivals</Text>
-          </Card.Content>
-        </Card>
-
-        {/* Productivity */}
-        <Card style={[styles.card, styles.cardPurple]}>
-          <Card.Content>
-            <View style={styles.cardHeader}>
-              <View style={[styles.iconContainer, { backgroundColor: '#FFFFFF' }]}>
-                <TrendingUp color="#a855f7" size={24} />
-              </View>
-            </View>
-            <Text style={styles.value}>{stats?.attendanceThisMonth?.percentage || 100}%</Text>
-            <Text style={styles.label}>Productivity</Text>
-          </Card.Content>
-        </Card>
+              <Text style={styles.premiumCardValue}>{stat.value}</Text>
+              <Text style={styles.premiumCardLabel}>{stat.label}</Text>
+              {/* Decorative Element */}
+              <View style={styles.decorativeCircleTop} />
+              <View style={styles.decorativeCircleBottom} />
+            </LinearGradient>
+          )
+        })}
       </View>
 
       {/* My Weekly Attendance */}
@@ -271,7 +274,7 @@ export default function MyDashboardScreen() {
       </View>
       {stats?.weeklyAttendance && stats.weeklyAttendance.length > 0 ? (
         [...stats.weeklyAttendance].reverse().slice(0, 7).map((item: any, index: number) => (
-          <View key={index} style={styles.listItem}>
+          <View key={index} style={styles.attendanceListItem}>
             <View>
               <Text style={styles.listTitle}>{item.day}, {new Date(item.date).toLocaleDateString()}</Text>
               {item.isWeekend && <Text style={styles.listSubtitle}>Weekend</Text>}
@@ -282,12 +285,14 @@ export default function MyDashboardScreen() {
                 (item.status === 'absent' || item.status === 'missing' ? styles.badgeRed : 
                  item.status === 'wo' ? styles.badgeGray : styles.badgeOrange)
             ]}>
-              <Text style={styles.statusText}>{item.status === 'wo' ? 'Weekly Off' : (item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : '')}</Text>
+              <Text style={[styles.statusText, item.status === 'present' ? styles.textGreen : (item.status === 'absent' || item.status === 'missing' ? styles.textRed : item.status === 'wo' ? {color: '#64748B'} : styles.textOrange)]}>
+                {item.status === 'wo' ? 'Weekly Off' : (item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : '')}
+              </Text>
             </View>
           </View>
         ))
       ) : (
-        <Text style={{ color: '#0F172A' }}>No attendance data</Text>
+        <Text style={{ color: '#0F172A', marginLeft: 16 }}>No attendance data</Text>
       )}
 
       {/* My Leaves */}
@@ -302,7 +307,8 @@ export default function MyDashboardScreen() {
           const isApproved = item.status === 'Approved';
           const isPending = item.status === 'Pending';
           return (
-            <View key={index} style={[styles.leaveCard, isApproved ? styles.leaveApproved : (isPending ? styles.leavePending : styles.leaveRejected)]}>
+            <View key={index} style={styles.leaveModernCard}>
+              <View style={[styles.leaveColorBar, { backgroundColor: isApproved ? '#10B981' : (isPending ? '#F59E0B' : '#EF4444') }]} />
               <View style={styles.leaveContent}>
                 <Text style={styles.leaveType}>{item.type || 'Leave Request'}</Text>
                 <Text style={styles.leaveDates}>{item.startDate}  •  {item.endDate}</Text>
@@ -326,15 +332,15 @@ export default function MyDashboardScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
         {stats?.upcomingHolidays && stats.upcomingHolidays.length > 0 ? (
           stats.upcomingHolidays.map((item: any, index: number) => (
-            <View key={index} style={styles.holidayModernCard}>
+            <LinearGradient key={index} colors={['#D1FAE5', '#A7F3D0']} style={styles.holidayModernCard}>
               <View style={styles.holidayIconWrapper}>
-                <Palmtree color="#10B981" size={28} />
+                <Palmtree color="#047857" size={28} />
               </View>
               <View style={styles.holidayInfo}>
                 <Text style={styles.holidayName} numberOfLines={1}>{item.name}</Text>
                 <Text style={styles.holidayDate}>{new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
               </View>
-            </View>
+            </LinearGradient>
           ))
         ) : (
           <View style={[styles.emptyCard, { marginLeft: 16, width: 250 }]}>
@@ -350,13 +356,13 @@ export default function MyDashboardScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
         {stats?.upcomingBirthdays && stats.upcomingBirthdays.length > 0 ? (
           stats.upcomingBirthdays.map((item: any, index: number) => (
-            <View key={item.id || index} style={styles.birthdayModernCard}>
+            <LinearGradient key={item.id || index} colors={['#FCE7F3', '#FBCFE8']} style={styles.birthdayModernCard}>
               <View style={styles.birthdayIconWrapper}>
                 <Cake color="#EC4899" size={24} />
               </View>
               <Text style={styles.birthdayModernName} numberOfLines={1}>{item.name}</Text>
               <Text style={styles.birthdayModernDate}>{new Date(item.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</Text>
-            </View>
+            </LinearGradient>
           ))
         ) : (
           <View style={[styles.emptyCard, { marginLeft: 16, width: 250 }]}>
@@ -373,8 +379,8 @@ export default function MyDashboardScreen() {
         stats.pendingTasks.map((item: any, index: number) => {
           const isCompleted = item.status === 'Completed';
           return (
-            <TouchableOpacity key={item.id || index} style={[styles.taskModernItem, isCompleted && styles.taskCompletedItem]}>
-              <View style={styles.taskIconWrapper}>
+            <TouchableOpacity key={item.id || index} style={styles.taskModernItem}>
+              <View style={[styles.taskIconWrapper, { backgroundColor: isCompleted ? '#D1FAE5' : '#FEF3C7' }]}>
                 <CheckCircle color={isCompleted ? '#10B981' : '#F59E0B'} size={24} />
               </View>
               <View style={{ flex: 1 }}>
@@ -402,404 +408,102 @@ export default function MyDashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  scrollContent: { paddingBottom: 60 },
+  
   welcomeSection: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 8,
-  },
-  greeting: {
-    fontSize: 16,
-    color: '#64748B',
-    marginBottom: 2,
-  },
-  userName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#0F172A',
-    letterSpacing: 0.5,
-    textTransform: 'capitalize',
-  },
-  headerAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 2,
-    borderColor: '#F97316',
-  },
-  headerAvatarPlaceholder: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#F97316',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(249, 115, 22, 0.2)',
-  },
-  headerAvatarText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    width: '48%',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  checkInBtn: {
-    backgroundColor: '#FFFFFF', // Green
-  },
-  checkOutBtn: {
-    backgroundColor: '#FFFFFF', // Red
-  },
-  actionBtnText: {
-    color: '#0F172A',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#0F172A',
-    marginBottom: 16,
-  },
-  quickLinksContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  quickLinkBox: {
-    width: '31%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  quickLinkIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  quickLinkText: {
-    color: '#0F172A',
-    fontSize: 12,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  card: {
-    width: '48%',
-    marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  cardGreen: { borderBottomWidth: 4, borderBottomColor: '#0F172A' },
-  cardOrange: { borderBottomWidth: 4, borderBottomColor: '#F97316' },
-  cardRed: { borderBottomWidth: 4, borderBottomColor: '#0F172A' },
-  cardPurple: { borderBottomWidth: 4, borderBottomColor: '#a855f7' },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    marginBottom: 12,
-  },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  value: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
-  label: {
-    fontSize: 14, color: '#F97316',
-    fontWeight: '500',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 16,
-  },
-  viewAllText: {
-    color: '#F97316',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  listItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  listTitle: {
-    color: '#0F172A',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  listSubtitle: {
-    color: '#0F172A',
-    fontSize: 13,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  badgeGreen: { backgroundColor: '#ECFDF5' },
-  badgeRed: { backgroundColor: '#FEF2F2' },
-  badgeOrange: { backgroundColor: '#FFFBEB' },
-  badgeGray: { backgroundColor: '#F1F5F9' },
-  textGreen: { color: '#059669', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
-  textRed: { color: '#DC2626', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
-  textOrange: { color: '#D97706', fontSize: 12, fontWeight: '700', textTransform: 'uppercase' },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  horizontalScroll: {
-    marginHorizontal: -16,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  emptyCard: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 16,
     padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderStyle: 'dashed',
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    marginBottom: 24,
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  emptyText: {
-    color: '#64748B',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  leaveCard: {
+  welcomeHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderLeftWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  leaveApproved: { borderLeftColor: '#10B981' },
-  leavePending: { borderLeftColor: '#F59E0B' },
-  leaveRejected: { borderLeftColor: '#EF4444' },
-  leaveContent: {
-    flex: 1,
-  },
-  leaveType: {
-    color: '#0F172A',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  leaveDates: {
-    color: '#64748B',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  holidayModernCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#ECFDF5',
-    padding: 16,
-    borderRadius: 20,
-    marginRight: 16,
-    width: 240,
-    borderWidth: 1,
-    borderColor: '#D1FAE5',
-  },
-  holidayIconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: '#D1FAE5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  holidayInfo: {
-    flex: 1,
-  },
-  holidayName: {
-    color: '#064E3B',
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  holidayDate: {
-    color: '#047857',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  birthdayModernCard: {
-    backgroundColor: '#FDF2F8',
-    padding: 20,
-    borderRadius: 24,
-    marginRight: 16,
-    width: 140,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FCE7F3',
-  },
-  birthdayIconWrapper: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#FBCFE8',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  birthdayModernName: {
-    color: '#831843',
-    fontSize: 15,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  birthdayModernDate: {
-    color: '#BE185D',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  taskModernItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  taskCompletedItem: {
-    backgroundColor: '#F8FAFC',
-    borderColor: '#F1F5F9',
-  },
-  taskIconWrapper: {
-    marginRight: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  taskTitle: {
-    color: '#0F172A',
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  taskTitleCompleted: {
-    color: '#94A3B8',
-    textDecorationLine: 'line-through',
-  },
-  taskSubtitle: {
-    color: '#64748B',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  hoursBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 16,
-    marginLeft: 12,
-  },
-  hoursText: {
-    color: '#a855f7',
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-  shiftInfoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  shiftInfoItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  shiftInfoLabel: {
-    color: '#0F172A',
-    fontSize: 12,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  shiftInfoValue: {
-    color: '#0F172A',
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
+  greeting: { fontSize: 18, color: '#FFEDD5', fontWeight: '500', marginBottom: 4 },
+  userName: { fontSize: 28, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5, textTransform: 'capitalize' },
+  headerAvatar: { width: 60, height: 60, borderRadius: 30, borderWidth: 3, borderColor: '#FFFFFF' },
+  headerAvatarPlaceholder: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
+  headerAvatarText: { color: '#F97316', fontSize: 22, fontWeight: '800' },
+
+  attendanceSection: { marginHorizontal: 16, marginBottom: 24 },
+  actionsContainer: { marginBottom: 0 },
+  actionBtn: { width: '100%', borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 4 },
+  actionBtnGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 18, borderRadius: 16 },
+  checkInBtn: {},
+  checkOutBtn: {},
+  actionBtnText: { fontSize: 20, fontWeight: '700', marginLeft: 12 },
+  
+  shiftInfoRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 16, marginTop: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  shiftInfoItem: { alignItems: 'center', flex: 1 },
+  shiftInfoLabel: { color: '#64748B', fontSize: 14, fontWeight: '600', marginBottom: 6 },
+  shiftInfoValue: { color: '#0F172A', fontSize: 16, fontWeight: '700' },
+
+  sectionTitle: { fontSize: 20, fontWeight: '700', color: '#0F172A', marginBottom: 16, marginLeft: 16 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, marginBottom: 12, paddingHorizontal: 16 },
+  viewAllText: { color: '#F97316', fontSize: 16, fontWeight: '600' },
+
+  quickLinksContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-start', paddingHorizontal: 8, marginBottom: 8 },
+  quickLinkModernBox: { width: '33.33%', alignItems: 'center', marginBottom: 20 },
+  quickLinkModernIconWrapper: { width: 56, height: 56, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 6, elevation: 3 },
+  quickLinkModernText: { color: '#475569', fontSize: 15, fontWeight: '600' },
+
+  premiumGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 16 },
+  premiumCard: { width: '48%', borderRadius: 24, padding: 20, marginBottom: 16, position: 'relative', overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 6 },
+  premiumCardHeader: { marginBottom: 12 },
+  premiumIconContainer: { width: 44, height: 44, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.25)', justifyContent: 'center', alignItems: 'center' },
+  premiumCardValue: { fontSize: 32, fontWeight: '800', color: '#FFFFFF', marginBottom: 4 },
+  premiumCardLabel: { fontSize: 15, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
+  decorativeCircleTop: { position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255,255,255,0.1)' },
+  decorativeCircleBottom: { position: 'absolute', bottom: -30, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.1)' },
+
+  horizontalScroll: { marginHorizontal: 0, paddingHorizontal: 16, paddingBottom: 16 },
+  
+  attendanceListItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 16, marginHorizontal: 16, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  listTitle: { color: '#0F172A', fontSize: 17, fontWeight: '700', marginBottom: 4 },
+  listSubtitle: { color: '#64748B', fontSize: 15 },
+  
+  leaveModernCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 20, marginHorizontal: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, overflow: 'hidden' },
+  leaveColorBar: { width: 6, height: '100%' },
+  leaveContent: { flex: 1, paddingVertical: 16, paddingLeft: 16 },
+  leaveType: { color: '#0F172A', fontSize: 18, fontWeight: '700', marginBottom: 4 },
+  leaveDates: { color: '#64748B', fontSize: 15, fontWeight: '500' },
+
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  badgeGreen: { backgroundColor: '#D1FAE5' },
+  badgeRed: { backgroundColor: '#FEE2E2' },
+  badgeOrange: { backgroundColor: '#FEF3C7' },
+  badgeGray: { backgroundColor: '#F1F5F9' },
+  textGreen: { color: '#059669' },
+  textRed: { color: '#DC2626' },
+  textOrange: { color: '#D97706' },
+  statusText: { fontSize: 14, fontWeight: '700', textTransform: 'uppercase' },
+
+  holidayModernCard: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 20, marginRight: 16, width: 260, shadowColor: '#10B981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
+  holidayIconWrapper: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  holidayInfo: { flex: 1 },
+  holidayName: { color: '#064E3B', fontSize: 18, fontWeight: '800', marginBottom: 4 },
+  holidayDate: { color: '#047857', fontSize: 15, fontWeight: '700' },
+
+  birthdayModernCard: { padding: 20, borderRadius: 24, marginRight: 16, width: 150, alignItems: 'center', shadowColor: '#EC4899', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 3 },
+  birthdayIconWrapper: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.8)', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  birthdayModernName: { color: '#831843', fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 4 },
+  birthdayModernDate: { color: '#BE185D', fontSize: 15, fontWeight: '700' },
+
+  taskModernItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 20, marginHorizontal: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  taskIconWrapper: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: 16 },
+  taskTitle: { color: '#0F172A', fontSize: 18, fontWeight: '700', marginBottom: 4 },
+  taskTitleCompleted: { color: '#94A3B8', textDecorationLine: 'line-through' },
+  taskSubtitle: { color: '#64748B', fontSize: 15, fontWeight: '600' },
+
+  emptyCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, marginHorizontal: 16, alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed' },
+  emptyText: { color: '#94A3B8', fontSize: 16, fontWeight: '600' },
 });

@@ -65,7 +65,7 @@ export default function RecruitmentScreen() {
         }}
         ListEmptyComponent={
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 60 }}>
-            <Text style={{ color: '#64748B', fontSize: 16, fontWeight: '500' }}>No active job postings</Text>
+            <Text style={{ color: '#64748B', fontSize: 18, fontWeight: '500' }}>No active job postings</Text>
           </View>
         }
       />
@@ -76,7 +76,7 @@ export default function RecruitmentScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC', padding: 16 },
-  screenTitle: { color: '#0F172A', fontSize: 24, marginBottom: 16, fontWeight: 'bold' },
+  screenTitle: { color: '#0F172A', fontSize: 26, marginBottom: 16, fontWeight: 'bold' },
   modernCard: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#0F172A',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     flex: 1,
   },
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   },
   applicantsText: {
     color: '#64748B',
-    fontSize: 14,
+    fontSize: 16,
   },
   statusBadge: {
     alignSelf: 'flex-start',
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
   },
   badgeOpen: { backgroundColor: '#D1FAE5' },

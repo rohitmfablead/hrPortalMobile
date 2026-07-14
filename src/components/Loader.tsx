@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   },
   message: {
     marginLeft: 12,
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     letterSpacing: 0.5,
   },

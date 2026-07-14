@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator, Image, SafeAreaView } from 'react-native';
 import { Avatar } from 'react-native-paper';
 import { Send, ChevronLeft, Image as ImageIcon, X, Check, CheckCheck } from 'lucide-react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -9,6 +9,7 @@ import { io, Socket } from 'socket.io-client';
 import { fetchChatMessages, addMessage, clearMessages, markMessagesAsRead } from '../redux/slices/chatSlice';
 import api from '../services/api';
 import * as ImagePicker from 'expo-image-picker';
+import CustomHeader from '../components/CustomHeader';
 
 export default function ChatRoomScreen() {
   const route = useRoute<any>();
@@ -32,29 +33,9 @@ export default function ChatRoomScreen() {
 
   useEffect(() => {
     navigation.setOptions({
-      headerShown: true,
-      headerTitle: () => (
-        <View style={styles.headerTitleContainer}>
-          {otherUser.avatar && otherUser.avatar !== 'AU' && otherUser.avatar.length > 5 ? (
-            <Avatar.Image size={32} source={{ uri: otherUser.avatar }} />
-          ) : (
-            <Avatar.Text size={32} label={otherUser.name.substring(0, 2).toUpperCase()} color="#FFF" style={{ backgroundColor: '#F97316' }} />
-          )}
-          <View style={styles.headerTextWrapper}>
-            <Text style={styles.headerName}>{otherUser.name}</Text>
-            <Text style={styles.headerRole}>
-              {isTyping ? <Text style={{ fontStyle: 'italic', color: '#F97316' }}>typing...</Text> : otherUser.role}
-            </Text>
-          </View>
-        </View>
-      ),
-      headerLeft: () => (
-        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginLeft: 16 }}>
-          <ChevronLeft color="#0F172A" size={24} />
-        </TouchableOpacity>
-      )
+      headerShown: false,
     });
-  }, [navigation, otherUser, isTyping]);
+  }, [navigation]);
 
   useEffect(() => {
     // Derive Socket URL from api baseURL
@@ -271,11 +252,33 @@ export default function ChatRoomScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-    >
+    <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+      <CustomHeader 
+        navigation={navigation} 
+        route={route} 
+        options={{}} 
+        showBackButton={true}
+        customTitleComponent={
+          <View style={styles.headerTitleContainer}>
+            {otherUser.avatar && otherUser.avatar !== 'AU' && otherUser.avatar.length > 5 ? (
+              <Avatar.Image size={36} source={{ uri: otherUser.avatar }} />
+            ) : (
+              <Avatar.Text size={36} label={otherUser.name.substring(0, 2).toUpperCase()} color="#F97316" style={{ backgroundColor: '#FFF' }} />
+            )}
+            <View style={styles.headerTextWrapper}>
+              <Text style={styles.headerName} numberOfLines={1}>{otherUser.name}</Text>
+              <Text style={styles.headerRole} numberOfLines={1}>
+                {isTyping ? <Text style={{ fontStyle: 'italic', color: '#FFF' }}>typing...</Text> : otherUser.role}
+              </Text>
+            </View>
+          </View>
+        }
+      />
+      <KeyboardAvoidingView 
+        style={styles.container} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 110 : 0}
+      >
       <FlatList
         ref={flatListRef}
         data={messages}
@@ -283,6 +286,7 @@ export default function ChatRoomScreen() {
         renderItem={renderMessage}
         contentContainerStyle={styles.listContent}
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+        showsVerticalScrollIndicator={false}
       />
 
       <View style={styles.inputAreaWrapper}>
@@ -319,7 +323,8 @@ export default function ChatRoomScreen() {
           </TouchableOpacity>
         </View>
       </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -336,18 +341,22 @@ const styles = StyleSheet.create({
   headerTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   headerTextWrapper: {
     marginLeft: 12,
+    flex: 1,
   },
   headerName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#0F172A',
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   headerRole: {
-    fontSize: 12,
-    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginTop: 2,
   },
   listContent: {
     padding: 16,
@@ -364,23 +373,33 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
   },
   messageBubble: {
-    maxWidth: '75%',
+    maxWidth: '78%',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 20,
   },
   messageBubbleMe: {
     backgroundColor: '#F97316',
     borderBottomRightRadius: 4,
+    elevation: 1,
+    shadowColor: '#F97316',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
   },
   messageBubbleOther: {
     backgroundColor: '#FFF',
     borderBottomLeftRadius: 4,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
   },
   messageText: {
-    fontSize: 15,
+    fontSize: 17,
     lineHeight: 22,
   },
   messageTextMe: {
@@ -402,7 +421,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   messageTime: {
-    fontSize: 10,
+    fontSize: 12,
   },
   messageTimeMe: {
     color: 'rgba(255, 255, 255, 0.7)',
@@ -415,8 +434,16 @@ const styles = StyleSheet.create({
   },
   inputAreaWrapper: {
     backgroundColor: '#FFF',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
   },
   previewContainer: {
     padding: 12,
@@ -444,8 +471,6 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: 12,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
   },
   attachButton: {
     padding: 10,
@@ -455,7 +480,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F8FAFC',
     borderRadius: 24,
     paddingHorizontal: 20,
     paddingTop: 12,
@@ -463,7 +488,9 @@ const styles = StyleSheet.create({
     minHeight: 48,
     maxHeight: 120,
     fontSize: 16,
-    color: '#1E293B',
+    color: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   sendButton: {
     width: 48,

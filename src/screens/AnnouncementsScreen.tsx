@@ -3,11 +3,21 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
 import { RootState } from '../redux/store'
 import { View, StyleSheet, FlatList, TouchableOpacity, Text, DeviceEventEmitter, ActivityIndicator, Alert, Platform } from 'react-native';
+import { RefreshControl } from "react-native";
 import { Megaphone, Pencil, Trash2 } from 'lucide-react-native';
 import api from '../services/api';
 import AddAnnouncementModal from '../components/AddAnnouncementModal';
 
 export default function AnnouncementsScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const { user } = useSelector((state: RootState) => state.auth);
   const isAdminOrHR = user?.role?.toLowerCase() === 'admin' || user?.role?.toLowerCase() === 'hr';
   const [localAnnouncements, setLocalAnnouncements] = useState<any[]>([]);
@@ -71,6 +81,7 @@ export default function AnnouncementsScreen() {
         <ActivityIndicator size="large" color="#3B82F6" style={{ marginTop: 20 }} />
       ) : (
         <FlatList
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
         data={localAnnouncements}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -100,7 +111,7 @@ export default function AnnouncementsScreen() {
         )}
         ListEmptyComponent={
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 60 }}>
-            <Text style={{ color: '#64748B', fontSize: 16, fontWeight: '500' }}>No announcements available</Text>
+            <Text style={{ color: '#64748B', fontSize: 18, fontWeight: '500' }}>No announcements available</Text>
           </View>
         }
       />
@@ -151,19 +162,19 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#0F172A',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     flex: 1,
     marginRight: 8,
   },
   date: {
     color: '#64748B',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
   },
   message: {
     color: '#475569',
-    fontSize: 14,
+    fontSize: 16,
     lineHeight: 20,
   },
 });

@@ -1,10 +1,20 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, ActivityIndicator, Text } from 'react-native';
+import { RefreshControl } from "react-native";
 import { Card, Title, Paragraph, List } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import api from '../services/api';
 
 export default function NotificationsScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -25,7 +35,7 @@ export default function NotificationsScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchNotifications();
-    }, [])
+    }, [refreshCounter])
   );
 
   return (
@@ -38,6 +48,7 @@ export default function NotificationsScreen() {
         </View>
       ) : (
         <FlatList
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
           data={notifications}
           keyExtractor={(item, index) => item.id || item._id || index.toString()}
           renderItem={({ item }) => (
@@ -72,11 +83,11 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF', padding: 16 },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 40 },
-  screenTitle: { color: '#0F172A', fontSize: 28, marginBottom: 16, fontWeight: 'bold' },
+  screenTitle: { color: '#0F172A', fontSize: 30, marginBottom: 16, fontWeight: 'bold' },
   card: { width: '100%', backgroundColor: '#FFFFFF', borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#E2E8F0',},
   unreadCard: { backgroundColor: '#F8FAFC', borderColor: '#CBD5E1' },
-  title: { color: '#0F172A', fontSize: 18, fontWeight: '600' },
-  paragraph: { color: '#475569', fontSize: 14, marginTop: 4 },
-  dateText: { color: '#64748B', fontSize: 12, alignSelf: 'flex-start', marginTop: 8 },
-  emptyText: { color: '#64748B', fontSize: 16, fontWeight: '500' },
+  title: { color: '#0F172A', fontSize: 20, fontWeight: '600' },
+  paragraph: { color: '#475569', fontSize: 16, marginTop: 4 },
+  dateText: { color: '#64748B', fontSize: 14, alignSelf: 'flex-start', marginTop: 8 },
+  emptyText: { color: '#64748B', fontSize: 18, fontWeight: '500' },
 });

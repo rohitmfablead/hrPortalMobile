@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Modal, TouchableOpacity, Text, Platform } from 'react-native';
 import CustomTextInput from './CustomTextInput';
+import CustomDatePicker from './CustomDatePicker';
 import { X, Calendar as CalendarIcon, Clock } from 'lucide-react-native';
 
 type EditAttendanceModalProps = {
@@ -42,12 +43,10 @@ export default function EditAttendanceModal({ visible, onClose, onSave, record }
             </TouchableOpacity>
           </View>
 
-          <CustomTextInput
-              label="Date (e.g. Oct 20, 2026)"
-              value={date} 
-              onChangeText={setDate}
-              placeholder="Oct 20, 2026"
-              left={<CustomTextInput.Icon icon={() => <CalendarIcon color="#F97316" size={18} />} />}
+          <CustomDatePicker
+            label="Date (YYYY-MM-DD)"
+            value={date} 
+            onDateChange={setDate}
           />
 
           <View style={styles.formGroupRow}>
@@ -129,7 +128,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#0F172A',
   },
@@ -145,7 +144,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: '#0F172A',
-    fontSize: 14,
+    fontSize: 16,
     marginBottom: 8,
     fontWeight: '500',
   },
@@ -165,7 +164,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     color: '#0F172A',
-    fontSize: 15,
+    fontSize: 17,
   },
   statusButtonsContainer: {
     flexDirection: 'row',
@@ -188,7 +187,7 @@ const styles = StyleSheet.create({
   statusBtnText: {
     color: '#0F172A',
     fontWeight: '500',
-    fontSize: 14,
+    fontSize: 16,
   },
   statusBtnTextActive: {
     color: '#0F172A',
@@ -203,7 +202,7 @@ const styles = StyleSheet.create({
   },
   saveBtnText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
 });

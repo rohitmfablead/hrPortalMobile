@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Platform, KeyboardAvoidingView, ScrollView, Dimensions, SafeAreaView, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Platform, KeyboardAvoidingView, ScrollView, Dimensions, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
@@ -7,6 +8,7 @@ import { RootState, AppDispatch } from '../redux/store';
 import { fetchMe } from '../redux/slices/authSlice';
 import api from '../services/api';
 import CustomTextInput from '../components/CustomTextInput';
+import CustomDatePicker from '../components/CustomDatePicker';
 import Toast from 'react-native-toast-message';
 import { ArrowLeft, Calendar as CalendarIcon, Eye, Edit3 } from 'lucide-react-native';
 
@@ -162,7 +164,11 @@ export default function EditProfileScreen() {
             </View>
 
             <View style={[styles.inputGroupHalf, isWide ? null : styles.inputGroupMobile]}>
-              <CustomTextInput label="Date of Birth" placeholder="dd/mm/yyyy" value={formData.dob} onChangeText={(val) => handleChange('dob', val)} right={<CustomTextInput.Icon icon={() => <CalendarIcon color="#F97316" size={18} />} />} />
+              <CustomDatePicker 
+                label="Date of Birth (YYYY-MM-DD)" 
+                value={formData.dob} 
+                onDateChange={(val) => handleChange('dob', val)} 
+              />
             </View>
             <View style={[styles.inputGroupHalf, isWide ? null : styles.inputGroupMobile]}>
               <CustomTextInput label="Blood Group" placeholder="e.g. O+, A-, B+" value={formData.bloodGroup} onChangeText={(val) => handleChange('bloodGroup', val)} />
@@ -189,20 +195,20 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
   container: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  headerTitle: { fontSize: 18, fontWeight: '700', color: '#0F172A' },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#0F172A' },
   backBtn: { padding: 4 },
   scrollContainer: { padding: 20, paddingBottom: 60 },
   avatarSection: { alignItems: 'center', marginBottom: 24 },
   avatarContainer: { position: 'relative' },
   avatarImage: { width: 100, height: 100, borderRadius: 50, borderWidth: 4, borderColor: 'rgba(249, 115, 22, 0.2)' },
   avatarPlaceholder: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#F97316', justifyContent: 'center', alignItems: 'center', borderWidth: 4, borderColor: 'rgba(249, 115, 22, 0.2)' },
-  avatarText: { color: '#0F172A', fontSize: 32, fontWeight: 'bold' },
+  avatarText: { color: '#0F172A', fontSize: 34, fontWeight: 'bold' },
   editBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#0F172A', width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
-  avatarHelper: { color: '#64748B', fontSize: 12, marginTop: 8 },
+  avatarHelper: { color: '#64748B', fontSize: 14, marginTop: 8 },
   formGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -8 },
   inputGroupHalf: { width: '100%', paddingHorizontal: 8, marginBottom: 20, ...Platform.select({ web: { width: '50%' } }) },
   inputGroupMobile: { width: '100%' },
   inputGroupFull: { width: '100%', paddingHorizontal: 8, marginBottom: 20 },
   saveBtn: { backgroundColor: '#F97316', paddingVertical: 14, borderRadius: 12, alignItems: 'center', marginTop: 16 },
-  saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
+  saveBtnText: { color: '#FFFFFF', fontSize: 18, fontWeight: '600' },
 });

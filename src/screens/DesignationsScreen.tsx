@@ -2,6 +2,7 @@ import CustomTextInput from '../components/CustomTextInput';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { View, StyleSheet, FlatList, ActivityIndicator, Alert, TouchableOpacity, DeviceEventEmitter } from 'react-native';
+import { RefreshControl } from "react-native";
 import { Text, Card, Modal, Portal, Button, IconButton, Menu } from 'react-native-paper';
 import { Pencil, Trash2, ChevronDown } from 'lucide-react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -11,6 +12,15 @@ import { fetchDesignations, fetchDepartments } from '../redux/slices/masterSlice
 import * as masterService from '../services/masterService';
 
 export default function DesignationsScreen() {
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshCounter, setRefreshCounter] = React.useState(0);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    setRefreshCounter(prev => prev + 1);
+    setTimeout(() => setRefreshing(false), 1200);
+  }, []);
+
   const dispatch = useDispatch<AppDispatch>();
   const { designations, departments, loading } = useSelector((state: RootState) => state.master);
   
@@ -24,7 +34,7 @@ export default function DesignationsScreen() {
   useEffect(() => {
     dispatch(fetchDesignations());
     dispatch(fetchDepartments());
-  }, [dispatch]);
+  }, [dispatch, refreshCounter]);
 
   useFocusEffect(
     useCallback(() => {
@@ -105,6 +115,7 @@ export default function DesignationsScreen() {
         <View style={styles.center}><ActivityIndicator size="large" color="#F97316" /></View>
       ) : (
         <FlatList
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F97316']} />}
           data={designations}
           keyExtractor={(item) => item._id}
           renderItem={renderItem}
@@ -174,7 +185,7 @@ const styles = StyleSheet.create({
   modalTitle: { marginBottom: 16, fontWeight: 'bold' },
   input: { marginBottom: 12 },
   pickerContainer: { borderWidth: 1, borderColor: '#ccc', borderRadius: 4, marginBottom: 12, paddingHorizontal: 8 },
-  pickerLabel: { fontSize: 12, color: '#666', marginTop: 4 },
+  pickerLabel: { fontSize: 14, color: '#666', marginTop: 4 },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 },
   modalButton: { marginLeft: 8 },
 });

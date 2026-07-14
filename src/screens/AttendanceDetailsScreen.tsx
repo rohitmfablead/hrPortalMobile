@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFEDD5',
   },
   employeeAvatarText: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
     color: '#F97316',
   },
@@ -247,13 +247,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   employeeNameText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: '#0F172A',
     marginBottom: 4,
   },
   employeeRoleText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#64748B',
     fontWeight: '500',
   },
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   subHeaderTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     color: '#334155',
   },
@@ -288,7 +288,7 @@ const styles = StyleSheet.create({
   monthBtnText: {
     color: '#3B82F6',
     fontWeight: '700',
-    fontSize: 13,
+    fontSize: 15,
   },
   dropdownOverlay: {
     flex: 1,
@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFF6FF',
   },
   dropdownItemText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#334155',
     fontWeight: '500',
   },
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   dateText: {
-    fontSize: 15,
+    fontSize: 17,
     fontWeight: '700',
     color: '#1E293B',
   },
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   badgeText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -390,12 +390,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   statValue: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#94A3B8',
     fontWeight: '500',
   }

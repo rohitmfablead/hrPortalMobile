@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Text, Modal, TextInput, ScrollView,
 import { X, Calendar } from 'lucide-react-native';
 import api from '../services/api';
 import { Picker } from '@react-native-picker/picker';
+import CustomDatePicker from './CustomDatePicker';
 
 export default function AddTaskModal({ visible, onClose, onSave }: any) {
   const [title, setTitle] = useState('');
@@ -110,17 +111,11 @@ export default function AddTaskModal({ visible, onClose, onSave }: any) {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Due Date (YYYY-MM-DD) <Text style={{color:'red'}}>*</Text></Text>
-              <View style={styles.dateInputContainer}>
-                <Calendar color="#64748B" size={20} style={{marginRight: 8}}/>
-                <TextInput
-                  style={{flex: 1, color: '#0F172A'}}
-                  placeholder="e.g. 2026-12-31"
-                  value={dueDate}
-                  onChangeText={setDueDate}
-                  placeholderTextColor="#94A3B8"
-                />
-              </View>
+              <CustomDatePicker
+                label="Due Date (YYYY-MM-DD)"
+                value={dueDate}
+                onDateChange={setDueDate}
+              />
             </View>
 
             <TouchableOpacity style={styles.submitBtn} onPress={handleSave}>
@@ -155,7 +150,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: '#0F172A',
   },
@@ -168,7 +163,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   label: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#334155',
     marginBottom: 8,
@@ -178,7 +173,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     borderRadius: 12,
     padding: 14,
-    fontSize: 15,
+    fontSize: 17,
     color: '#0F172A',
     backgroundColor: '#F8FAFC',
   },
@@ -219,7 +214,7 @@ const styles = StyleSheet.create({
   },
   submitBtnText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
   },
 });

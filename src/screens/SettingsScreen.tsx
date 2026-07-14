@@ -234,8 +234,8 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC', paddingTop: 16 },
-  screenTitle: { color: '#0F172A', fontSize: 28, fontWeight: 'bold', paddingHorizontal: 20 },
-  subtitle: { color: '#64748B', fontSize: 14, marginBottom: 24, marginTop: -4, paddingHorizontal: 20 },
+  screenTitle: { color: '#0F172A', fontSize: 30, fontWeight: 'bold', paddingHorizontal: 20 },
+  subtitle: { color: '#64748B', fontSize: 16, marginBottom: 24, marginTop: -4, paddingHorizontal: 20 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 60 },
   listContent: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 60 },
   floatingProfileCard: {
@@ -265,8 +265,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-  profileName: { fontSize: 22, fontWeight: '800', color: '#0F172A', marginBottom: 4 },
-  profileRole: { fontSize: 14, color: '#64748B', fontWeight: '500', marginBottom: 16 },
+  profileName: { fontSize: 24, fontWeight: '800', color: '#0F172A', marginBottom: 4 },
+  profileRole: { fontSize: 16, color: '#64748B', fontWeight: '500', marginBottom: 16 },
   removeAvatarBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     gap: 6,
   },
-  removeAvatarText: { color: '#EF4444', fontWeight: '600', fontSize: 13 },
+  removeAvatarText: { color: '#EF4444', fontWeight: '600', fontSize: 15 },
   tabsWrapper: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  premiumTabText: { color: '#64748B', fontWeight: '600', fontSize: 14 },
+  premiumTabText: { color: '#64748B', fontWeight: '600', fontSize: 16 },
   premiumTabTextActive: { color: '#FFFFFF' },
   contentSection: {
     backgroundColor: '#FFFFFF',
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   sectionHeaderTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#0F172A',
     marginBottom: 24,
@@ -329,9 +329,9 @@ const styles = StyleSheet.create({
   formRowSingle: { marginBottom: 20 },
   inputContainer: { width: '48%' },
   inputContainerMobile: { width: '100%' },
-  inputLabel: { fontSize: 13, fontWeight: '700', color: '#475569', marginBottom: 8 },
-  input: { backgroundColor: '#F8FAFC', height: 52, fontSize: 15, borderRadius: 12 },
-  inputSingle: { backgroundColor: '#F8FAFC', height: 52, fontSize: 15, width: '48%', borderRadius: 12 },
+  inputLabel: { fontSize: 15, fontWeight: '700', color: '#475569', marginBottom: 8 },
+  input: { backgroundColor: '#F8FAFC', height: 52, fontSize: 17, borderRadius: 12 },
+  inputSingle: { backgroundColor: '#F8FAFC', height: 52, fontSize: 17, width: '48%', borderRadius: 12 },
   primaryGradientBtn: {
     marginTop: 12,
     shadowColor: '#F97316',
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
   },
   btnGradientText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   },
   settingTitle: {
     color: '#0F172A',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
 });

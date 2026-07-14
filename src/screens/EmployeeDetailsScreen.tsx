@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F97316' },
   screenContainer: { flex: 1, backgroundColor: '#F8FAFC' },
   headerContainer: { height: 60, backgroundColor: '#F97316', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
-  headerTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '600', letterSpacing: 0.5 },
+  headerTitle: { color: '#FFFFFF', fontSize: 20, fontWeight: '600', letterSpacing: 0.5 },
   backBtn: { padding: 8 },
   center: {
     flex: 1,
@@ -188,13 +188,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   name: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
     color: '#0F172A',
     marginBottom: 4,
   },
   designation: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#64748B',
     marginBottom: 12,
   },
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   statusText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
   },
   card: {
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#0F172A',
     marginBottom: 16,
@@ -236,23 +236,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   detailLabel: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#64748B',
     marginBottom: 2,
   },
   detailValue: {
-    fontSize: 15,
+    fontSize: 17,
     color: '#0F172A',
     fontWeight: '500',
   },
   emergencyName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: '#0F172A',
     marginBottom: 4,
   },
   emergencyText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#475569',
     marginBottom: 2,
   },

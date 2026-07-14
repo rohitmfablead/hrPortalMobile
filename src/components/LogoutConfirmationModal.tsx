@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, Text, Platform } from 'react-native';
+import { View, StyleSheet, Modal, TouchableOpacity, Text, Platform, ActivityIndicator } from 'react-native';
 import CustomTextInput from './CustomTextInput';
 import { LogOut, X } from 'lucide-react-native';
 
@@ -7,9 +7,10 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  loading?: boolean;
 };
 
-export default function LogoutConfirmationModal({ visible, onClose, onConfirm }: Props) {
+export default function LogoutConfirmationModal({ visible, onClose, onConfirm, loading }: Props) {
   return (
     <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
@@ -29,8 +30,12 @@ export default function LogoutConfirmationModal({ visible, onClose, onConfirm }:
             <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
               <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.confirmBtn} onPress={onConfirm}>
-              <Text style={styles.confirmBtnText}>Yes, Log out</Text>
+            <TouchableOpacity style={styles.confirmBtn} onPress={onConfirm} disabled={loading}>
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={styles.confirmBtnText}>Yes, Log out</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -71,13 +76,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   title: { color: '#F97316',
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
   },
   message: {
     color: '#0F172A',
-    fontSize: 15,
+    fontSize: 17,
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
@@ -99,7 +104,7 @@ const styles = StyleSheet.create({
   },
   cancelBtnText: {
     color: '#0F172A',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
   confirmBtn: {
@@ -111,7 +116,7 @@ const styles = StyleSheet.create({
   },
   confirmBtnText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
 });
