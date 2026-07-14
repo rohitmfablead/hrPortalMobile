@@ -16,7 +16,7 @@ export default function GlobalSocketListener() {
     const currentUserId = user._id || user.id;
     if (!currentUserId) return;
 
-    const baseURL = api.defaults.baseURL || "http://localhost:5000/api";
+    const baseURL = api.defaults.baseURL || "https://hrback-production-61ba.up.railway.app/api";
     const socketUrl = baseURL.replace('/api', '');
 
     const socket = io(socketUrl);

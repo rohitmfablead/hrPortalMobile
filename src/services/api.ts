@@ -2,7 +2,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const API_URL = 'http://localhost:5000/api'; // Or your network IP for mobile dev
+const API_URL = 'https://hrback-production-61ba.up.railway.app/api'; // Or your network IP for mobile dev
 
 const api = axios.create({
   baseURL: API_URL,

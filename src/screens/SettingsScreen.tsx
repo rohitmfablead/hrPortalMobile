@@ -68,7 +68,7 @@ export default function SettingsScreen() {
         payload.append('avatar', blob, filename);
         
         const token = await require('@react-native-async-storage/async-storage').default.getItem('token');
-        const response = await fetch('http://localhost:5000/api/employees/me', {
+        const response = await fetch('https://hrback-production-61ba.up.railway.app/api/employees/me', {
           method: 'PUT',
           body: payload,
           headers: {

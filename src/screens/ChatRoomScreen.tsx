@@ -58,7 +58,7 @@ export default function ChatRoomScreen() {
 
   useEffect(() => {
     // Derive Socket URL from api baseURL
-    const baseURL = api.defaults.baseURL || "http://localhost:5000/api";
+    const baseURL = api.defaults.baseURL || "https://hrback-production-61ba.up.railway.app/api";
     const socketUrl = baseURL.replace('/api', '');
 
     // Connect to Socket.IO server
@@ -154,7 +154,7 @@ export default function ChatRoomScreen() {
           formData.append('image', blob, filename);
           
           const token = await require('@react-native-async-storage/async-storage').default.getItem('token');
-          const baseURL = api.defaults.baseURL || "http://localhost:5000/api";
+          const baseURL = api.defaults.baseURL || "https://hrback-production-61ba.up.railway.app/api";
           const response = await fetch(`${baseURL}/chat/upload-image`, {
             method: 'POST',
             body: formData,
