@@ -42,7 +42,7 @@ export default function MyDashboardScreen() {
   const [isFaceModalVisible, setIsFaceModalVisible] = React.useState(false);
   const [todayShift, setTodayShift] = React.useState<any>(null);
   const [checkoutLoading, setCheckoutLoading] = React.useState(false);
-
+  console.log("dashboardData------->>>", stats?.weeklyAttendance)
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning,';
@@ -119,7 +119,7 @@ export default function MyDashboardScreen() {
   const handleFaceMatchSuccess = () => {
     setIsFaceModalVisible(false);
     const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-    
+
     const isShift2 = isCheckedOut && !isCheckedIn2;
     const payload = isShift2 ? { checkIn2: time, employeeId: user?.id } : { checkIn: time, employeeId: user?.id };
 
@@ -177,8 +177,8 @@ export default function MyDashboardScreen() {
               onPress={isCheckedOut2 ? undefined : handleAttendance}
               disabled={isCheckedOut2 || statusLoading}
             >
-              <LinearGradient 
-                colors={isCheckedOut2 ? ['#F1F5F9', '#E2E8F0'] : (!isCheckedOut ? (isCheckedIn ? ['#FEE2E2', '#FECACA'] : ['#D1FAE5', '#A7F3D0']) : (isCheckedIn2 ? ['#FEE2E2', '#FECACA'] : ['#D1FAE5', '#A7F3D0']))} 
+              <LinearGradient
+                colors={isCheckedOut2 ? ['#F1F5F9', '#E2E8F0'] : (!isCheckedOut ? (isCheckedIn ? ['#FEE2E2', '#FECACA'] : ['#D1FAE5', '#A7F3D0']) : (isCheckedIn2 ? ['#FEE2E2', '#FECACA'] : ['#D1FAE5', '#A7F3D0']))}
                 style={styles.actionBtnGradient}
               >
                 {checkoutLoading ? (
@@ -282,10 +282,10 @@ export default function MyDashboardScreen() {
             <View style={[
               styles.statusBadge,
               item.status === 'present' ? styles.badgeGreen :
-                (item.status === 'absent' || item.status === 'missing' ? styles.badgeRed : 
-                 item.status === 'wo' ? styles.badgeGray : styles.badgeOrange)
+                (item.status === 'absent' || item.status === 'missing' ? styles.badgeRed :
+                  item.status === 'wo' ? styles.badgeGray : styles.badgeOrange)
             ]}>
-              <Text style={[styles.statusText, item.status === 'present' ? styles.textGreen : (item.status === 'absent' || item.status === 'missing' ? styles.textRed : item.status === 'wo' ? {color: '#64748B'} : styles.textOrange)]}>
+              <Text style={[styles.statusText, item.status === 'present' ? styles.textGreen : (item.status === 'absent' || item.status === 'missing' ? styles.textRed : item.status === 'wo' ? { color: '#64748B' } : styles.textOrange)]}>
                 {item.status === 'wo' ? 'Weekly Off' : (item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1) : '')}
               </Text>
             </View>
@@ -410,7 +410,7 @@ export default function MyDashboardScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
   scrollContent: { paddingBottom: 60 },
-  
+
   welcomeSection: {
     padding: 24,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
@@ -441,7 +441,7 @@ const styles = StyleSheet.create({
   checkInBtn: {},
   checkOutBtn: {},
   actionBtnText: { fontSize: 20, fontWeight: '700', marginLeft: 12 },
-  
+
   shiftInfoRow: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 16, marginTop: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
   shiftInfoItem: { alignItems: 'center', flex: 1 },
   shiftInfoLabel: { color: '#64748B', fontSize: 14, fontWeight: '600', marginBottom: 6 },
@@ -466,11 +466,11 @@ const styles = StyleSheet.create({
   decorativeCircleBottom: { position: 'absolute', bottom: -30, right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.1)' },
 
   horizontalScroll: { marginHorizontal: 0, paddingHorizontal: 16, paddingBottom: 16 },
-  
+
   attendanceListItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFFFFF', padding: 16, borderRadius: 16, marginHorizontal: 16, marginBottom: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
   listTitle: { color: '#0F172A', fontSize: 17, fontWeight: '700', marginBottom: 4 },
   listSubtitle: { color: '#64748B', fontSize: 15 },
-  
+
   leaveModernCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 20, marginHorizontal: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2, overflow: 'hidden' },
   leaveColorBar: { width: 6, height: '100%' },
   leaveContent: { flex: 1, paddingVertical: 16, paddingLeft: 16 },

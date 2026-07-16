@@ -37,11 +37,13 @@ api.interceptors.response.use(
       // Clear token if unauthorized
       try {
         await AsyncStorage.removeItem('token');
+        // Dispatch logoutLocally to update Redux state, which unmounts protected screens and renders LoginScreen
+        const { default: store } = require('../redux/store');
+        const { logoutLocally } = require('../redux/slices/authSlice');
+        store.dispatch(logoutLocally());
       } catch (e) {
-        console.error('Error removing token from AsyncStorage', e);
+        console.error('Error handling unauthorized error', e);
       }
-      // Note: Navigation should be handled via Redux state or navigation ref, 
-      // not window.location in React Native.
     }
     return Promise.reject(error);
   }

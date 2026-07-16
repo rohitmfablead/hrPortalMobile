@@ -23,9 +23,31 @@ export default function MyAttendanceScreen() {
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [todayShift, setTodayShift] = useState<any>(null);
+  
+  // Filter state
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
+  const handlePrevMonth = () => {
+    if (selectedMonth === 1) {
+      setSelectedMonth(12);
+      setSelectedYear(prev => prev - 1);
+    } else {
+      setSelectedMonth(prev => prev - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 12) {
+      setSelectedMonth(1);
+      setSelectedYear(prev => prev + 1);
+    } else {
+      setSelectedMonth(prev => prev + 1);
+    }
+  };
 
   useEffect(() => {
-    dispatch(fetchMyAttendance());
+    dispatch(fetchMyAttendance({ month: selectedMonth.toString(), year: selectedYear.toString() }));
     
     const fetchStatus = async () => {
       try {
@@ -44,13 +66,24 @@ export default function MyAttendanceScreen() {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
-  }, [dispatch]);
+  }, [dispatch, selectedMonth, selectedYear]);
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color="#F97316"/></View>;
 
-  // Dummy monthly stats
-  const presentDays = records?.filter((r: any) => r.status?.toLowerCase() !== 'absent')?.length || 0;
-  const absentDays = records?.filter((r: any) => r.status?.toLowerCase() === 'absent')?.length || 0;
+  // Calculate monthly stats from records based on selected filter
+  const currentMonthRecords = records?.filter((r: any) => {
+    const d = new Date(r.date);
+    return d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
+  }) || [];
+
+  const presentDays = currentMonthRecords.filter((r: any) => 
+    r.status?.toLowerCase() === 'present' || r.status?.toLowerCase() === 'late'
+  ).length;
+  
+  const absentDays = currentMonthRecords.filter((r: any) => 
+    r.status?.toLowerCase() === 'absent'
+  ).length;
+  
   const leaveDays = 0;
 
   return (
@@ -107,14 +140,32 @@ export default function MyAttendanceScreen() {
         </View>
 
         {/* Recent List */}
-        <Text style={styles.sectionTitle}>Attendance History</Text>
+        {/* Month Selector & History */}
+        <View style={styles.historyHeader}>
+          <Text style={styles.sectionTitle}>Attendance History</Text>
+          
+          <View style={styles.monthSelector}>
+            <TouchableOpacity onPress={handlePrevMonth} style={styles.monthBtn}>
+              <Text style={styles.monthBtnText}>{'<'}</Text>
+            </TouchableOpacity>
+            
+            <Text style={styles.monthText}>
+              {new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
+            </Text>
+            
+            <TouchableOpacity onPress={handleNextMonth} style={styles.monthBtn}>
+              <Text style={styles.monthBtnText}>{'>'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {records && records.length > 0 ? records.map((item: any, index: number) => {
           const status = item.status?.toLowerCase() || 'present';
           let badgeStyle = styles.badgeGreen;
           let textStyle = styles.textGreen;
-          if (status === 'absent') {
-            badgeStyle = styles.badgeRed;
-            textStyle = styles.textRed;
+          if (status === 'absent' || status === 'wo') {
+            badgeStyle = status === 'wo' ? styles.badgeGray : styles.badgeRed;
+            textStyle = status === 'wo' ? {color: '#64748B'} : styles.textRed;
           } else if (status === 'late') {
             badgeStyle = styles.badgeOrange;
             textStyle = styles.textOrange;
@@ -256,11 +307,41 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
+  historyHeader: {
+    flexDirection: 'column',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#0F172A',
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  monthSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    ...shadowStyle,
+  },
+  monthBtn: {
+    padding: 8,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+  },
+  monthBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  monthText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0F172A',
   },
   summaryRow: {
     flexDirection: 'row',

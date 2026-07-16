@@ -7,11 +7,14 @@ import { Provider as ReduxProvider } from 'react-redux';
 import AppNavigator from './src/navigation/AppNavigator';
 import { store } from './src/redux/store';
 
+import NetworkStatus from './src/components/NetworkStatus';
+
 export default function App() {
   return (
     <ReduxProvider store={store}>
       <PaperProvider theme={MD3DarkTheme}>
         <AppNavigator />
+        <NetworkStatus />
         <StatusBar style="light" />
       </PaperProvider>
     </ReduxProvider>

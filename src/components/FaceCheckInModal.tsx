@@ -38,6 +38,16 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
     }
   }, [visible, permission?.granted, permission?.canAskAgain]);
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (visible && permission?.granted && !isMatched && isFaceRegistered !== false && !isVerifying && !uploadedImage) {
+      interval = setInterval(() => {
+        handleAutoCapture();
+      }, 2500); // Poll every 2.5 seconds
+    }
+    return () => clearInterval(interval);
+  }, [visible, permission?.granted, isMatched, isFaceRegistered, isVerifying, uploadedImage]);
+
   const checkFaceStatus = async () => {
     setStatusLoading(true);
     try {
@@ -74,10 +84,12 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
+      // console.log('Face Match API Response (Manual):', response.data);
+
       if (response.data?.success && response.data?.data?.isMatch) {
         setIsMatched(true);
         setMatchPercentage(response.data.data.matchPercentage);
-        
+
         // Log if it matched a different user but allow it for testing purposes
         if (response.data.data.userId !== user?.id && response.data.data.name !== user?.name && user?.role !== 'Admin') {
           console.warn(`Face matched another employee: ${response.data.data.name}, but allowing for demo purposes.`);
@@ -95,6 +107,42 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
     }
   };
 
+  const handleAutoVerifyFace = async (uri: string) => {
+    try {
+      const formData = new FormData();
+      if (Platform.OS === 'web') {
+        const response = await fetch(uri);
+        const blob = await response.blob();
+        formData.append('face', blob, 'face.jpg');
+      } else {
+        const filename = uri.split('/').pop() || 'face.jpg';
+        const type = `image/${filename.split('.').pop() || 'jpeg'}`;
+        formData.append('face', {
+          uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+          name: filename,
+          type,
+        } as any);
+      }
+
+      const response = await api.post('/face/verify', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      // console.log('Face Match API Response (Auto):', response.data);
+
+      if (response.data?.success && response.data?.data?.isMatch) {
+        setIsMatched(true);
+        setMatchPercentage(response.data.data.matchPercentage);
+        if (response.data.data.userId !== user?.id && response.data.data.name !== user?.name && user?.role !== 'Admin') {
+          console.warn(`Face matched another employee: ${response.data.data.name}, but allowing for demo purposes.`);
+        }
+      }
+    } catch (error: any) {
+      console.log('Auto Verification Error:', error.response?.data || error.message);
+      // Silent failure for auto verification
+    }
+  };
+
   const cameraRef = React.useRef<any>(null);
 
   const handleLiveCapture = async () => {
@@ -108,6 +156,20 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
         setIsVerifying(false);
         console.log('Error capturing live photo: ', error);
         Alert.alert('Error', 'Failed to capture photo from camera');
+      }
+    }
+  };
+
+  const handleAutoCapture = async () => {
+    if (cameraRef.current && !isVerifying) {
+      try {
+        setIsVerifying(true);
+        const photo = await cameraRef.current.takePictureAsync({ quality: 0.3 });
+        await handleAutoVerifyFace(photo.uri);
+      } catch (error) {
+        console.log('Error capturing auto photo: ', error);
+      } finally {
+        setIsVerifying(false);
       }
     }
   };
@@ -145,11 +207,11 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.titleContainer}>
-              <CameraIcon color="#F97316" size={18} />
-              <Text style={styles.headerTitle}>Check-In with Face Recognition</Text>
+              <CameraIcon color="#3B82F6" size={20} />
+              <Text style={styles.headerTitle}>Face Check-In</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <X color="#F97316" size={24} />
+              <X color="#94A3B8" size={24} />
             </TouchableOpacity>
           </View>
 
@@ -165,40 +227,29 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
           </View>
 
           {/* Camera View Area */}
-          <View style={styles.cameraContainer}>
+          <View style={[styles.cameraContainer, { borderColor: isMatched ? '#10B981' : isVerifying ? '#3B82F6' : '#E2E8F0', shadowColor: isVerifying ? '#3B82F6' : 'transparent', shadowOpacity: 0.5, shadowRadius: 15, elevation: isVerifying ? 10 : 0 }]}>
             {uploadedImage ? (
               <View style={styles.cameraWrapper}>
                 <Image source={{ uri: uploadedImage }} style={styles.camera} resizeMode="cover" />
-                <View style={[styles.cameraOverlay, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
-                  {isVerifying ? (
-                    <View style={styles.verifyingContainer}>
-                      <ActivityIndicator size="large" color="#F97316" />
-                      <Text style={styles.cameraText}>Verifying Face...</Text>
-                    </View>
-                  ) : isMatched ? (
-                    <View style={styles.verifyingContainer}>
-                      <User color="#10B981" size={48} />
-                      <Text style={[styles.cameraText, { color: '#10B981', fontWeight: 'bold', fontSize: 20, marginTop: 12 }]}>
-                        Face Matched! {matchPercentage ? `(${matchPercentage}%)` : ''}
-                      </Text>
-                    </View>
-                  ) : null}
+                <View style={[styles.cameraOverlay, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
+                  {isVerifying && <ActivityIndicator size="large" color="#3B82F6" />}
+                  {isMatched && <CheckCircle color="#10B981" size={54} />}
                 </View>
               </View>
             ) : statusLoading ? (
               <View style={styles.verifyingContainer}>
-                <ActivityIndicator size="large" color="#F97316" />
+                <ActivityIndicator size="large" color="#3B82F6" />
                 <Text style={styles.cameraText}>Checking Face Status...</Text>
               </View>
             ) : isFaceRegistered === false ? (
               <View style={styles.cameraFallback}>
-                <Text style={[styles.fallbackText, { textAlign: 'center', marginHorizontal: 20, color: '#FFFFFF' }]}>
-                  Your face is not registered in the system. Please contact HR or register your face in Profile Settings before checking in.
+                <Text style={[styles.fallbackText, { textAlign: 'center', marginHorizontal: 20, color: '#0F172A' }]}>
+                  Your face is not registered. Please contact HR.
                 </Text>
               </View>
             ) : !permission?.granted ? (
               <View style={styles.cameraFallback}>
-                <Text style={[styles.fallbackText, { color: '#FFFFFF' }]}>Camera permission is required.</Text>
+                <Text style={[styles.fallbackText, { color: '#0F172A' }]}>Camera permission required.</Text>
                 <TouchableOpacity style={styles.permissionBtn} onPress={requestPermission}>
                   <Text style={styles.permissionBtnText}>Grant Permission</Text>
                 </TouchableOpacity>
@@ -206,47 +257,40 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
             ) : (
               <View style={styles.cameraWrapper}>
                 <CameraView style={styles.camera} facing="front" ref={cameraRef} />
-
-                {/* Overlay inside camera */}
-                <View style={[styles.cameraOverlay, { backgroundColor: isVerifying || isMatched ? 'rgba(0,0,0,0.5)' : 'transparent' }]}>
-                  {isVerifying ? (
-                    <View style={styles.verifyingContainer}>
-                      <ActivityIndicator size="large" color="#F97316" />
-                      <Text style={styles.cameraText}>Verifying Face...</Text>
-                    </View>
-                  ) : isMatched ? (
-                    <View style={styles.verifyingContainer}>
-                      <User color="#10B981" size={48} />
-                      <Text style={[styles.cameraText, { color: '#10B981', fontWeight: 'bold', fontSize: 20, marginTop: 12 }]}>
-                        Face Matched! {matchPercentage ? `(${matchPercentage}%)` : ''}
-                      </Text>
-                    </View>
-                  ) : (
-                    <View style={styles.captureOverlay}>
-                      <View style={styles.faceGuideFrame} />
-                      <TouchableOpacity style={styles.simulateBtn} onPress={handleLiveCapture}>
-                        <View style={styles.captureBtnInner} />
-                      </TouchableOpacity>
-                    </View>
-                  )}
+                <View style={[styles.cameraOverlay, { backgroundColor: isVerifying ? 'rgba(59,130,246,0.1)' : isMatched ? 'rgba(16,185,129,0.2)' : 'transparent' }]}>
+                  {isVerifying && <ActivityIndicator size="large" color="#3B82F6" />}
+                  {isMatched && <CheckCircle color="#10B981" size={54} />}
                 </View>
               </View>
             )}
           </View>
 
+          {/* Scanning Text Badge */}
+          <View style={styles.statusBadgeContainer}>
+            {isVerifying ? (
+              <Text style={[styles.statusBadgeText, { color: '#3B82F6' }]}>Scanning face...</Text>
+            ) : isMatched ? (
+              <Text style={[styles.statusBadgeText, { color: '#10B981' }]}>
+                Face Matched! {matchPercentage ? `(${matchPercentage}%)` : ''}
+              </Text>
+            ) : (
+              <Text style={[styles.statusBadgeText, { color: '#64748B' }]}>Please look at the camera</Text>
+            )}
+          </View>
+
           {/* Footer Buttons */}
           {isMatched ? (
-            <TouchableOpacity 
-              style={{ 
-                backgroundColor: '#22c55e', 
-                paddingHorizontal: 20, 
-                paddingVertical: 14, 
-                borderRadius: 8, 
-                flexDirection: 'row', 
-                alignItems: 'center', 
+            <TouchableOpacity
+              style={{
+                backgroundColor: '#22c55e',
+                paddingHorizontal: 20,
+                paddingVertical: 14,
+                borderRadius: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
                 justifyContent: 'center',
-                width: '100%' 
-              }} 
+                width: '100%'
+              }}
               onPress={() => {
                 setIsMatched(false);
                 setMatchPercentage(null);
@@ -259,17 +303,16 @@ export default function FaceCheckInModal({ visible, onClose, onSuccess }: FaceCh
           ) : (
             <View style={styles.footer}>
               <TouchableOpacity
-                style={[styles.footerBtn, (isFaceRegistered === false || statusLoading) && { opacity: 0.5 }]}
+                style={[styles.footerBtn, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD', marginRight: 12 }]}
                 onPress={handleUploadPhoto}
-                disabled={isFaceRegistered === false || statusLoading}
               >
-                <Upload color="#F97316" size={18} />
-                <Text style={styles.footerBtnText}>Upload Photo</Text>
+                <Upload color="#0284C7" size={18} />
+                <Text style={[styles.footerBtnText, { color: '#0284C7' }]}>Upload</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.footerBtn} onPress={onClose}>
-                <X color="#F97316" size={18} />
-                <Text style={styles.footerBtnText}>Cancel</Text>
+              <TouchableOpacity style={[styles.footerBtn, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]} onPress={onClose}>
+                <X color="#EF4444" size={18} />
+                <Text style={[styles.footerBtnText, { color: '#EF4444' }]}>Cancel</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -290,87 +333,98 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 380,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 24,
+    padding: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.15,
+    shadowRadius: 30,
+    elevation: 20,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: '#0F172A',
-    marginLeft: 8,
+    marginLeft: 10,
   },
   closeBtn: {
-    padding: 4,
+    padding: 6,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 20,
   },
   userInfoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 20,
+    backgroundColor: '#F8FAFC',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 24,
   },
   avatarContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E0E7FF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
   userName: {
     fontSize: 17,
-    fontWeight: '600',
-    color: '#0F172A',
+    fontWeight: '700',
+    color: '#1E293B',
   },
   userRole: {
-    fontSize: 15,
-    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#64748B',
     textTransform: 'capitalize',
+    marginTop: 2,
   },
   cameraContainer: {
-    width: '100%',
-    height: 350,
-    backgroundColor: '#000',
-    borderRadius: 16,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    alignSelf: 'center',
+    backgroundColor: '#F1F5F9',
     overflow: 'hidden',
     marginBottom: 20,
+    borderWidth: 4,
     justifyContent: 'center',
     alignItems: 'center',
   },
   cameraFallback: {
     alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    padding: 20,
   },
   fallbackText: {
     color: '#0F172A',
     marginBottom: 12,
+    fontWeight: '500',
+    fontSize: 15,
   },
   permissionBtn: {
-    backgroundColor: '#F97316',
+    backgroundColor: '#3B82F6',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: 10,
+    borderRadius: 10,
   },
   permissionBtnText: {
-    color: '#0F172A',
+    color: '#FFFFFF',
     fontWeight: '600',
   },
   cameraWrapper: {
@@ -418,15 +472,22 @@ const styles = StyleSheet.create({
   },
   verifyingContainer: {
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 24,
-    borderRadius: 16,
+    justifyContent: 'center',
+    flex: 1,
   },
   cameraText: {
     color: '#0F172A',
     marginTop: 12,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  statusBadgeContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  statusBadgeText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
   footer: {
     flexDirection: 'row',
@@ -437,16 +498,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginHorizontal: 6,
+    paddingVertical: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
   footerBtnText: {
-    color: '#0F172A',
-    fontWeight: '600',
+    fontWeight: '700',
     marginLeft: 8,
     fontSize: 16,
   },
